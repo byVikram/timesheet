@@ -1,6 +1,8 @@
-# 🏏 Dream11 Fantasy Sports Backend API
+# Timesheets Backend API
 
-A scalable Flask backend for a fantasy sports application, featuring player management, team creation, and match simulations.
+A scalable Flask backend for managing timesheets.
+
+---
 
 ## 🌟 Features
 
@@ -12,34 +14,30 @@ A scalable Flask backend for a fantasy sports application, featuring player mana
 - OpenAPI (Swagger) documentation
 - Modular architecture with blueprints
 
+---
+
 ## 📦 Project Structure
 
-dream11-backend/
+
+
+timesheet/
 ├── app/
-│ ├── init.py # Application factory
-│ ├── extensions.py # Flask extensions initialization
-│ ├── config.py # Configuration settings
+│ ├── constants/ # Project-wide constants
 │ ├── models/ # Database models
-│ │ ├── user.py # User model
-│ │ ├── player.py # Player model
-│ │ ├── team.py # Team model
-│ │ └── ... # Other models
-│ ├── routes/ # API blueprints
-│ │ ├── users.py # User routes
-│ │ ├── players.py # Player routes
-│ │ ├── teams.py # Team routes
-│ │ └── ... # Other route blueprints
-│ ├── schemas/ # Marshmallow schemas
-│ ├── services/ # Business logic
-│ ├── utils/ # Helper functions
-│ └── tests/ # Test cases
-├── migrations/ # Database migration files
-├── venv/ # Virtual environment (ignored)
-├── requirements.txt # Python dependencies
-└── main.py # Application entry point
+│ ├── routes/ # API routes / endpoints
+│ ├── schemas/ # Pydantic schemas / validation
+│ ├── services/ # Business logic and services
+│ ├── utils/ # Utility functions
+│ └── pycache/ # Python cache files
+├── logs/ # Log files
+├── migrations/ # Database migrations
+│ └── versions/ # Migration versions
+├── tests/ # Unit and integration tests
+└── .venv/ # Python virtual environment (ignored)
 
 ---
 
+---
 
 ## 🚀 Getting Started
 
@@ -49,27 +47,35 @@ dream11-backend/
 - MySQL 5.7+
 - pip
 
+---
+
 ### Installation
 
 1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/dream11-backend.git
-   cd dream11-backend
-   ```
+
+    ```bash
+    git clone https://github.com/yourusername/timesheet.git
+    cd timesheet
+    ```
+
 
 2. **Create and activate virtual environment**
-    python -m venv venv
-    # Linux/MacOS
-    source venv/bin/activate
+    # Create virtual environment
+    python -m venv .venv
+
+    # Activate virtual environment
     # Windows
-    venv\Scripts\activate
+    .venv\Scripts\activate
+    # Linux / macOS
+    source .venv/bin/activate
+
 
 3. **Install dependencies**
-pip install -r requirements.txt
+    pip install -r requirements.txt
 
 4. **Configure database**
 
-    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://username:password@localhost/dream11_dev"
+    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://username:password@localhost/timesheet"
 
 5. **Run database migrations**
     ```bash
@@ -82,15 +88,8 @@ pip install -r requirements.txt
 python -m flask db migrate -m "Initial migration"
 ```
 
-**
-
-flask run
-
-
-
-flask db migrate -m "Describe your change here"
-flask db upgrade
-
+6. **Run Apllication**
+    flask run
 
 
 
