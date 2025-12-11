@@ -18,6 +18,11 @@ class UserLoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
 
+class GetUsersSchema(Schema):
+    page=fields.Integer()
+    per_page=fields.Integer()
+
+
 class UserCodeSchema(Schema):
     user_code = fields.Str()
 

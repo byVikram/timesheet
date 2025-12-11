@@ -1,52 +1,67 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint
-# from app.models.users import Organization, User
-# from app.extensions import db
+
 from app.services.organization_service import getOrganization, registerOrganization
-from app.schemas.organization_schema import OrgRegisterSchema
-from app.utils.helpers import authorize, getSuccessMessage, tokenValidation
+from app.schemas.organization_schema import GetOrgSchema, OrgRegisterSchema
+from app.utils.helpers import (
+    authorize,
+    getErrorMessage,
+    getSuccessMessage,
+    tokenValidation,
+)
 
 blp = Blueprint(
-	"Org APIs",
-	__name__,
-	description="Organization-related APIs",
+    "Org APIs",
+    __name__,
+    description="Organization-related APIs",
 )
 
 
 @blp.route("/list")
 class GetOrganizationList(MethodView):
 
-	@tokenValidation
-	@authorize(['Super Admin'])
-	def get(self):
+    @blp.arguments(GetOrgSchema)
+    @tokenValidation
+    @authorize(["Super Admin"])
+    def get(self, requestObj):
 
-		orgData, error = getOrganization()
+        try:
 
-		if error:
-			return {"status": "error", "message": error}, 400
+            orgData, error = getOrganization(
+                page=requestObj["page"], per_page=requestObj["per_page"]
+            )
 
+            if error:
+                return getErrorMessage(error), 400
 
-		return getSuccessMessage(
-			"Organization list fetched successfully",
-			orgData,
-		)
+            return getSuccessMessage(
+                "Organization list fetched successfully",
+                orgData,
+            )
+
+        except Exception as e:
+            return getErrorMessage(str(e)), 500
 
 
 @blp.route("/register")
 class RegisterOrganization(MethodView):
-	@blp.arguments(OrgRegisterSchema)
+    @blp.arguments(OrgRegisterSchema)
 
-	# @tokenValidation
-	# @authorize(['Super Admin'])
-	def post(self, org_data):
+    @tokenValidation
+    @authorize(['Super Admin'])
+    def post(self, org_data):
 
-		org, error = registerOrganization(org_data["name"], org_data["email"])
+        try:
 
-		if error:
-			return {"status": "error", "message": error}, 400
+            org, error = registerOrganization(org_data["name"], org_data["email"])
 
-		return {
-			"status": "success",
-			"message": "Organization registered successfully",
-			"organization_id": org.code,
-		}
+            if error:
+                return getErrorMessage(error), 400
+
+            return getSuccessMessage(
+                "Organization created successfully",
+                org,
+            )
+
+        except Exception as e:
+            return getErrorMessage(str(e)), 500

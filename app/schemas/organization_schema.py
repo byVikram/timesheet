@@ -8,6 +8,11 @@ class OrgLoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
 
+
+class GetOrgSchema(Schema):
+    page=fields.Integer()
+    per_page=fields.Integer()
+
 class OrgResponseSchema(Schema):
     id = fields.Int()
     org_name = fields.Str()

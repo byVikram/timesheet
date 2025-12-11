@@ -61,7 +61,7 @@ class User(db.Model):
     organization = db.relationship('Organization', back_populates='users', lazy=True)
     role = db.relationship('UserRole', back_populates='users', lazy=True)
     created_timesheets = db.relationship('Timesheet', back_populates='user', foreign_keys='Timesheet.user_id', lazy=True)
-    approved_timesheets = db.relationship('Timesheet', back_populates='approver', foreign_keys='Timesheet.approver_id', lazy=True)
+    approved_timesheets_entries = db.relationship('TimesheetEntry', back_populates='approver', foreign_keys='TimesheetEntry.approver_id', lazy=True)
     changed_timesheets = db.relationship('TimesheetHistory', back_populates='changed_by_user', lazy=True)
     manager = db.relationship('User', remote_side=[id], backref='subordinates', lazy=True)
 

@@ -1,9 +1,9 @@
-from app.models import Project, Organization, User, Task
+from app.models import Project, User, Task
 from app.services.common_service import getIdFromCode
 from app.extensions import db
 
 
-def getProjects(org_id):
+def getProjects(orgId):
     """
     Retrieve all projects for a given organization.
 
@@ -12,11 +12,6 @@ def getProjects(org_id):
     """
 
     try:
-
-        orgId, error = getIdFromCode(Organization, org_id)
-
-        if error:
-            return None, error
 
         projects = Project().query.filter_by(org_id=orgId).all()
 
@@ -40,12 +35,12 @@ def getProjects(org_id):
         return None, str(e)
 
 
-def createProject(orgCode, userCode, projectData):
+def createProject(orgId, userId, projectData):
     """
     Create a new project within an organization.
 
-    :param orgCode: Code of the organization
-    :param userCode: Code of the user creating the project
+    :param orgId: ID of the organization
+    :param userId: ID of the user creating the project
     :param projectData: Dict containing project details
         Expected keys: name, description, start_date, end_date, active, manager_code
     :return: Tuple (created project data, error message)
@@ -53,12 +48,10 @@ def createProject(orgCode, userCode, projectData):
 
     try:
 
-        orgId, error1 = getIdFromCode(Organization, orgCode)
-        userId, error2 = getIdFromCode(User, userCode)
         mangerId, error3 = getIdFromCode(User, projectData["manager_code"])
 
-        if error1 or error2 or error3:
-            return None, error1 or error2 or error3
+        if error3:
+            return None, error3
 
         if Project.query.filter_by(org_id=orgId, name=projectData["name"]).first():
             return None, "Project already exists"

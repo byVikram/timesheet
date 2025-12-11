@@ -122,20 +122,26 @@ def authorize(required_roles):
 			# Make sure self.userCode exists (tokenValidation must run first)
 			if not hasattr(self, 'userCode'):
 				return {"status": "error", "message": "Unauthorized: missing user info"}, 401
-			
+
 			from app.services.user_service import getUserAssignedRole
 
-			user_roles, error = getUserAssignedRole(self.userCode)  # Implement this function
-
+			user_roles, user_id, org_id,  error = getUserAssignedRole(self.userCode)  # Implement this function
 
 			self.userRole = user_roles
+			self.userId = user_id
+			self.orgId = org_id
 
 			if error:
 				return {"status": "error", "message": error}, 403
 
-			# Check if user has at least one required role
-			if not any(role in user_roles for role in required_roles):
+
+			if "ALL" not in required_roles and not any(role in user_roles for role in required_roles):
 				return {"status": "error", "message": "Forbidden: insufficient permissions"}, 403
+
+
+			# Check if user has at least one required role
+			# if not any(role in user_roles for role in required_roles):
+			# 	return {"status": "error", "message": "Forbidden: insufficient permissions"}, 403
 
 			# Call the original method
 			return func(self, *args, **kwargs)
@@ -229,27 +235,46 @@ def current_utc_time():
 
 
 def paginateQuery(query, page=1, per_page=10):
-    """
-    Paginate a SQLAlchemy query and return results + metadata.
-    """
-    page = max(1, int(page))
-    per_page = max(1, int(per_page))
+	"""
+	Paginate a SQLAlchemy query and return results + metadata.
+	"""
+	page = max(1, int(page))
+	per_page = max(1, int(per_page))
 
-    total = query.count()  # total items in the query
-    items = query.offset((page - 1) * per_page).limit(per_page).all()
+	total = query.count()  # total items in the query
+	items = query.offset((page - 1) * per_page).limit(per_page).all()
 
-    total_pages = (total + per_page - 1) // per_page
+	total_pages = (total + per_page - 1) // per_page
 
-    meta = {
-        "page": page,
-        "per_page": per_page,
-        "total": total,
-        "total_pages": total_pages,
-    }
+	meta = {
+		"page": page,
+		"per_page": per_page,
+		"total": total,
+		"total_pages": total_pages,
+	}
 
-    return items, meta
+	return items, meta
 
 
+
+def formatDatetime(dt, fmt="%d/%m/%Y"):
+	"""
+	Format a datetime or date object into a string.
+
+	Args:
+		dt (datetime or date): The date or datetime object to format.
+		fmt (str): Format type: "iso" (default) or a custom strftime pattern.
+
+	Returns:
+		str: Formatted date string.
+	"""
+	if dt is None:
+		return None
+
+	if fmt == "iso":
+		return dt.isoformat()
+	else:
+		return dt.strftime(fmt)
 
 
 

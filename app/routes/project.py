@@ -3,7 +3,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint
 from app.schemas.project_schema import GetTasksSchema, ProjectCreationSchema, TaskCreationSchema
 from app.services.project_service import createProject, createTask, getProjects, getTasks
-from app.utils.helpers import authorize, getSuccessMessage, tokenValidation
+from app.utils.helpers import authorize, getErrorMessage, getSuccessMessage, tokenValidation
 
 blp = Blueprint(
 	"Project APIs",
@@ -19,16 +19,20 @@ class GetUserList(MethodView):
 	@authorize(['Super Admin', 'HR'])
 
 	def get(self):
+		try:
 
-		projects, error = getProjects(self.orgCode)
+			projects, error = getProjects(self.orgId)
 
-		if error:
-			return {"status": "error", "message": error}, 400
+			if error:
+				return getErrorMessage(error), 400
 
-		return getSuccessMessage(
-			"Projects list fetched successfully",
-			projects,
-		)
+			return getSuccessMessage(
+				"Projects list fetched successfully",
+				projects,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
 
 
 
@@ -41,10 +45,10 @@ class CreateProjects(MethodView):
 
 	def post(self, projectData):
 		try:
-			projects, error = createProject(self.orgCode, self.userCode, projectData)
+			projects, error = createProject(self.orgId, self.userId, projectData)
 
 			if error:
-				return {"status": "error", "message": error}, 400
+				return getErrorMessage(error), 400
 
 			return getSuccessMessage(
 				"Projects list fetched successfully",
@@ -52,7 +56,7 @@ class CreateProjects(MethodView):
 			)
 
 		except Exception as e:
-			return {"status": "error", "message": str(e)}, 500
+			return getErrorMessage(str(e)), 500
 
 
 @blp.route("/create-task")
@@ -67,7 +71,7 @@ class CreateTask(MethodView):
 			task, error = createTask(taskData)
 
 			if error:
-				return {"status": "error", "message": error}, 400
+				return getErrorMessage(error), 400
 
 			return getSuccessMessage(
 				"Tasks added successfully",
@@ -75,7 +79,7 @@ class CreateTask(MethodView):
 			)
 
 		except Exception as e:
-			return {"status": "error", "message": str(e)}, 500
+			return getErrorMessage(str(e)), 500
 
 
 @blp.route("/task/search")
@@ -83,14 +87,14 @@ class ListTask(MethodView):
 
 	@blp.arguments(GetTasksSchema, location="query")
 	@tokenValidation
-	@authorize(['Super Admin', 'HR', 'Manager', 'Candidate'])
+	@authorize(['Super Admin', 'HR', 'Manager', 'Employee'])
 
 	def get(self, taskData):
 		try:
 			tasks, error = getTasks(taskData)
 
 			if error:
-				return {"status": "error", "message": error}, 400
+				return getErrorMessage(error), 400
 
 			return getSuccessMessage(
 				"Tasks fetched successfully",
@@ -98,5 +102,5 @@ class ListTask(MethodView):
 			)
 
 		except Exception as e:
-			return {"status": "error", "message": str(e)}, 500
+			return getErrorMessage(str(e)), 500
 

@@ -5,7 +5,7 @@ VALUES
     ('5d5f9f52-7ac1-4c1c-b9a1-2e6d2eb8f441', 'Super Admin', 'Has full system access and administrative privileges'),
     ('d2e3a9f8-8c23-4f02-9bc2-b658b9c74820', 'HR', 'Handles employee onboarding, policies, and HR operations'),
     ('1c94ab84-b39e-4fd3-8ce4-638d58d52b48', 'Manager', 'Responsible for leading teams and approving timesheets'),    
-    ('8fb71f98-16cd-4410-9e8c-f131bbf78b3f', 'Candidate', 'External user applying for job roles');
+    ('8fb71f98-16cd-4410-9e8c-f131bbf78b3f', 'Employee', 'External user applying for job roles');
 
 
 INSERT INTO timesheet_status (code, name, description) VALUES

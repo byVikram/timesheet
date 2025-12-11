@@ -1,6 +1,8 @@
 import os
 from flask import Flask
 from dotenv import load_dotenv
+from flask_cors import CORS  # <-- import at the top
+
 
 from app.utils.helpers import setupLambdaLogger, setupLogger
 
@@ -21,6 +23,8 @@ def create_app():
     load_dotenv()  # <-- Load .env variables
 
     app = Flask(__name__)
+    CORS(app, resources={r"/*": {"origins": "*"}})
+
     # setupLogger(app)
     # setupLambdaLogger(app)
 

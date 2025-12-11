@@ -1,5 +1,3 @@
-
-
 TIMESHEET_STATUS = {
     "DRAFT": 1,
     "PENDING_APPROVAL": 2,
@@ -7,10 +5,17 @@ TIMESHEET_STATUS = {
     "REJECTED": 4,
     "CANCEL": 5,
     "LOCKED": 6,
-    "IN_PROGRESS": 7
+    "IN_PROGRESS": 7,
+    "PARTIAL_APPROVE": 8,
+    "PARTIAL_REJECT": 9,
 }
 
-TIMESHEET_APPROVE_REJECT_VARIANT = {
-    "APPROVE" 
-    "REJECT"
+TIMESHEET_APPROVE_REJECT_VARIANT = {"APPROVE" "REJECT"}
+
+
+ROLES = {
+    "SUPER_ADMIN": "Super Admin",
+    "HR": "HR",
+    "MANAGER": "Manager",
+    "EMPLOYEE": "Employee",
 }

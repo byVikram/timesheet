@@ -1,11 +1,9 @@
-from collections import OrderedDict
+
 from app.extensions import db
 from app.models import User, UserRole, Project, UserProject
+from app.models.timesheets import TimesheetStatus
 from app.models.users import Organization
 from app.services.common_service import getIdFromCode
-
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload
 
 
 from app.utils.helpers import (
@@ -55,19 +53,21 @@ def getUserAssignedRole(userCode):
 
     try:
         role_name = (
-            db.session.query(UserRole.name)
+            db.session.query(UserRole.name, User.id, Organization.id.label("org_id"))
             .join(User, User.role_id == UserRole.id)
+            .join(Organization, User.org_id == Organization.id)
             .filter(User.code == userCode)
-            .scalar()
+            .first()
         )
 
-        if not role_name:
-            return None, "Role not found or user not found"
 
-        return role_name, None
+        if not role_name:
+            return None, None, "Role not found or user not found"
+
+        return role_name.name, role_name.id, role_name.org_id, None
 
     except Exception as e:
-        return None, str(e)
+        return None, None, None, str(e)
 
 
 def getUserRoles():
@@ -371,7 +371,7 @@ def getUserProjects(userCode):
         return None, str(e)
 
 
-def assignProject(userCode, projectData):
+def assignProject(authorUserId, projectData):
     """
     Assign a project to a user.
     Prevents duplicate assignments.
@@ -380,12 +380,11 @@ def assignProject(userCode, projectData):
 
     try:
 
-        authorUserId, error1 = getIdFromCode(User, userCode)
         userId, error2 = getIdFromCode(User, projectData["user_code"])
         projectId, error3 = getIdFromCode(Project, projectData["project_code"])
 
-        if error1 or error2 or error3:
-            return None, error1 or error2 or error3
+        if error2 or error3:
+            return None, error2 or error3
 
         if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
             return None, "Project already exists"
@@ -406,4 +405,31 @@ def assignProject(userCode, projectData):
 
     except Exception as e:
         db.session.rollback()
+        return None, str(e)
+
+
+
+def lookup():
+    """
+    Retrieve all lookup values needed.
+    """
+
+    try:
+
+        timesheetStatus = TimesheetStatus.query.all()
+
+        timesheetStatusList = []
+
+
+        for ts in timesheetStatus:
+            timesheetStatusList.append(
+                {
+                    "code": ts.code,
+                    "name": ts.name,
+                }
+            )
+
+        return {"timesheet_status": timesheetStatusList}, None
+
+    except Exception as e:
         return None, str(e)

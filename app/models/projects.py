@@ -15,7 +15,8 @@ class Task(db.Model):
 
     # timesheets = db.relationship('Timesheet', back_populates='task')
     project = db.relationship('Project', back_populates='tasks')
-    task_timesheet = db.relationship('Timesheet', back_populates='tasks')
+    timesheet_entries = db.relationship('TimesheetEntry', back_populates='task', cascade='all, delete-orphan')
+
 
 
 class Project(db.Model):
@@ -41,7 +42,7 @@ class Project(db.Model):
 
     # tasks = db.relationship('Task', backref='project', lazy=True)
     tasks = db.relationship('Task', back_populates='project', lazy=True)
-    timesheets = db.relationship('Timesheet', back_populates='project', lazy=True)
+    timesheet_entries = db.relationship('TimesheetEntry', back_populates='project', lazy=True)
 
     # Relationships (lazy='select' so they are only loaded if accessed)
     created_by_user = db.relationship('User', back_populates='created_projects', foreign_keys=[created_by])
