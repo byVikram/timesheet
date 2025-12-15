@@ -17,6 +17,7 @@ from .routes.user import blp as UserBlueprint
 from .routes.organization import blp as OrgBlueprint
 from .routes.project import blp as ProjectBlueprint
 from .routes.timesheet import blp as TimesheetBlueprint
+from .routes.reports import blp as ReportsBlueprint
 
 
 def create_app():
@@ -58,6 +59,7 @@ def create_app():
     api.register_blueprint(UserBlueprint, url_prefix="/user")
     api.register_blueprint(ProjectBlueprint, url_prefix="/project")
     api.register_blueprint(TimesheetBlueprint, url_prefix="/timesheet")
+    api.register_blueprint(ReportsBlueprint, url_prefix="/reports")
 
 
     return app

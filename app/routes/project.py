@@ -87,7 +87,7 @@ class ListTask(MethodView):
 
 	@blp.arguments(GetTasksSchema, location="query")
 	@tokenValidation
-	@authorize(['Super Admin', 'HR', 'Manager', 'Employee'])
+	@authorize(['ALL'])
 
 	def get(self, taskData):
 		try:

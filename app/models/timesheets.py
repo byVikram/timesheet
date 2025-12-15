@@ -67,6 +67,10 @@ class Timesheet(db.Model):
     status_obj = db.relationship('TimesheetStatus')
     entries = db.relationship('TimesheetEntry', back_populates='timesheet', cascade='all, delete-orphan')
 
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'week_start', 'week_end', name='uq_user_week'),
+    )
+
 
 
 class TimesheetEntry(db.Model):

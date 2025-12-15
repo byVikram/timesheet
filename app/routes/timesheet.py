@@ -13,6 +13,7 @@ from app.schemas.timesheet_schema import (
 from app.services.timesheet_service import (
 	createHoliday,
 	createTimesheetEntry,
+	createTimesheetsForAllUsers,
 	deleteTimesheetEntry,
 	getAllTimesheets,
 	getHolidays,
@@ -171,7 +172,7 @@ class GetTimesheet(MethodView):
 			return getErrorMessage(str(e)), 500
 
 
-@blp.route("/create")
+@blp.route("/create-entry")
 class CreateTimesheetEntry(MethodView):
 	@blp.doc(description="Create new timesheet entry")
 	@blp.arguments(CreateTimesheetEntrySchema)
@@ -186,6 +187,28 @@ class CreateTimesheetEntry(MethodView):
 
 			return getSuccessMessage(
 				"Timesheet fetched successfully",
+				timesheet,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
+@blp.route("/create-timesheet")
+class CreateTimesheet(MethodView):
+	@blp.doc(description="Create new timesheet run by cron")
+	# @blp.arguments(CreateTimesheetEntrySchema)
+	# @tokenValidation
+	# @authorize(["ALL"])
+	def post(self):
+		try:
+			timesheet, error = createTimesheetsForAllUsers()
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				"",
 				timesheet,
 			)
 

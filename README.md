@@ -19,7 +19,7 @@ A scalable Flask backend for managing timesheets.
 ## 📦 Project Structure
 
 
-
+```
 timesheet/
 ├── app/
 │ ├── constants/ # Project-wide constants
@@ -34,10 +34,9 @@ timesheet/
 │ └── versions/ # Migration versions
 ├── tests/ # Unit and integration tests
 └── .venv/ # Python virtual environment (ignored)
-
+```
 ---
 
----
 
 ## 🚀 Getting Started
 
@@ -60,22 +59,32 @@ timesheet/
 
 
 2. **Create and activate virtual environment**
-    # Create virtual environment
+    ## Create virtual environment
+    ```
     python -m venv .venv
+    ```
 
-    # Activate virtual environment
-    # Windows
+    ## Activate virtual environment
+    ### Windows
+    ```
     .venv\Scripts\activate
-    # Linux / macOS
+    ```
+    ### Linux / macOS
+    ```
     source .venv/bin/activate
+    ```
 
 
 3. **Install dependencies**
+    ```
     pip install -r requirements.txt
+    ```
+
 
 4. **Configure database**
 
     SQLALCHEMY_DATABASE_URI = "mysql+pymysql://username:password@localhost/timesheet"
+
 
 5. **Run database migrations**
     ```bash
@@ -84,9 +93,9 @@ timesheet/
     flask db upgrade
     ```
 
-```shell
-python -m flask db migrate -m "Initial migration"
-```
+    ```shell
+    python -m flask db migrate -m "Initial migration"
+    ```
 
 6. **Run Apllication**
     flask run

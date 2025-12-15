@@ -1,5 +1,4 @@
-from datetime import timedelta
-
+from datetime import datetime, timedelta
 from sqlalchemy import func
 from app.constants.lookups import TIMESHEET_STATUS
 from app.models import Holiday, TimesheetStatus, Timesheet
@@ -89,10 +88,10 @@ def getUserTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 				TimesheetStatus.code == timesheetData["timesheet_status"]
 			)
 
-		if timesheetData.get("user_name"):
-			query = query.filter(
-				User.full_name.ilike(f"%{timesheetData['user_name']}%")
-			)
+		# if timesheetData.get("user_name"):
+		# 	query = query.filter(
+		# 		User.full_name.ilike(f"%{timesheetData['user_name']}%")
+		# 	)
 
 		allTimesheets, meta = paginateQuery(query, page, per_page)
 		timesheetList = []
@@ -172,6 +171,11 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 		if timesheetData.get("user_name"):
 			query = query.filter(
 				User.full_name.ilike(f"%{timesheetData['user_name']}%")
+			)
+
+		if timesheetData.get("user_code"):
+			query = query.filter(
+				User.code == timesheetData["user_code"]
 			)
 
 		allTimesheets, meta = paginateQuery(query, page, per_page)
@@ -432,6 +436,44 @@ def createTimesheetEntry(orgId, timesheetEntryData):
 		db.session.rollback()
 		return None, str(e)
 
+def createTimesheetsForAllUsers():
+    try:
+        today = datetime.utcnow().date()
+        week_start = today - timedelta(days=today.weekday())  # Monday
+        week_end = week_start + timedelta(days=6)            # Sunday
+
+        # Fetch all user IDs
+        users = User.query.with_entities(User.id).all()
+        user_ids = [u.id for u in users]
+
+        # Fetch existing timesheets for this week
+        existing_ts = Timesheet.query.filter(
+            Timesheet.user_id.in_(user_ids),
+            Timesheet.week_start == week_start,
+            Timesheet.week_end == week_end
+        ).with_entities(Timesheet.user_id).all()
+        existing_user_ids = set([u.user_id for u in existing_ts])
+
+        # Prepare only new timesheets
+        timesheet_data = [
+            {
+                "user_id": uid,
+                "week_start": week_start,
+                "week_end": week_end,
+                "status": TIMESHEET_STATUS["DRAFT"],
+            }
+            for uid in user_ids if uid not in existing_user_ids
+        ]
+
+        if timesheet_data:
+            db.session.bulk_insert_mappings(Timesheet, timesheet_data)
+            db.session.commit()
+
+        return f"Created {len(timesheet_data)} new timesheets successfully", None
+
+    except Exception as e:
+        db.session.rollback()
+        return None, str(e)
 
 def deleteTimesheetEntry(userId, timesheetEntryData):
 	"""

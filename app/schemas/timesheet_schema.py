@@ -12,6 +12,7 @@ class SearchTimesheetSchema(Schema):
     per_page = fields.Integer()
     timesheet_status = fields.Str()
     user_name = fields.Str()
+    user_code = fields.Str()
 
 
 # class GetTimesheetSchema(Schema):
