@@ -168,15 +168,39 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 				TimesheetStatus.code == timesheetData["timesheet_status"]
 			)
 
-		if timesheetData.get("user_name"):
+		if timesheetData.get("search"):
 			query = query.filter(
-				User.full_name.ilike(f"%{timesheetData['user_name']}%")
+				User.full_name.ilike(f"%{timesheetData['search']}%")
 			)
 
 		if timesheetData.get("user_code"):
 			query = query.filter(
 				User.code == timesheetData["user_code"]
 			)
+
+		sort_columns = {
+			"user_name": User.full_name,
+			"week_start": Timesheet.week_start,
+			"week_end": Timesheet.week_end,
+			"status": Timesheet.status
+		}
+
+		sort_by = timesheetData.get("sort_by")
+		sort_direction = timesheetData.get("sort_direction", "asc").lower()
+
+
+		if sort_by in sort_columns:
+			column = sort_columns[sort_by]
+
+			# Use func.lower for string columns (like full_name)
+			# if sort_by == "user_name":
+			# 	column = func.lower(column)
+
+			# Apply ascending or descending
+			if sort_direction == "desc":
+				query = query.order_by(column.desc())
+			else:
+				query = query.order_by(column.asc())
 
 		allTimesheets, meta = paginateQuery(query, page, per_page)
 		timesheetList = []

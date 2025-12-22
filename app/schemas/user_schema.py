@@ -21,6 +21,7 @@ class UserLoginSchema(Schema):
 class GetUsersSchema(Schema):
     page=fields.Integer()
     per_page=fields.Integer()
+    show_all=fields.Boolean()
 
 
 class UserCodeSchema(Schema):

@@ -1,10 +1,11 @@
-import code
 from sqlalchemy import func
 from app.models import Project, User, Task
 from app.models.timesheets import Timesheet, TimesheetEntry
 from app.extensions import db
+from app.models.users import UserProject
 
-def getProjectReports(orgId):
+
+def getProjectReports(orgId, userCodes):
     """
     Retrieve a comprehensive set of reports for a given organization.
 
@@ -18,11 +19,13 @@ def getProjectReports(orgId):
                 Project.id.label("project_id"),
                 Project.name.label("project_name"),
                 func.count(Task.id).label("num_tasks"),
-                func.sum(TimesheetEntry.hours).label("total_hours")
+                func.sum(TimesheetEntry.hours).label("total_hours"),
             )
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
             .join(Task, Task.id == TimesheetEntry.task_id)
-            .filter(Project.org_id == orgId)
+            .join(UserProject, UserProject.project_id == Project.id)
+            .join(User, UserProject.user_id == User.id)
+            .filter(Project.org_id == orgId, User.code.in_(userCodes))
             .group_by(Project.id, Project.name)
             .all()
         )
@@ -38,15 +41,17 @@ def getProjectReports(orgId):
 
         # ----- Task-level summary -----
         task_summary = (
-        db.session.query(
+            db.session.query(
                 Project.name.label("project_name"),
                 Task.name.label("task_name"),
                 Task.code.label("task_code"),
-                func.sum(TimesheetEntry.hours).label("total_hours")
+                func.sum(TimesheetEntry.hours).label("total_hours"),
             )
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
             .join(Task, Task.id == TimesheetEntry.task_id)
-            .filter(Project.org_id == orgId)
+            .join(UserProject, UserProject.project_id == Project.id)
+            .join(User, UserProject.user_id == User.id)
+            .filter(Project.org_id == orgId, User.code.in_(userCodes))
             .group_by(Project.name, Task.name, Task.code)
             .all()
         )
@@ -63,10 +68,16 @@ def getProjectReports(orgId):
             project_dict = {"project_name": project}
             for task in all_tasks:
                 # Find task hours for this project
-                t = next((x for x in task_summary if x.project_name == project and x.task_name == task), None)
+                t = next(
+                    (
+                        x
+                        for x in task_summary
+                        if x.project_name == project and x.task_name == task
+                    ),
+                    None,
+                )
                 project_dict[task] = float(t.total_hours) if t else 0
             task_summary_list.append(project_dict)
-
 
             # ----- Employee-level summary -----
         employee_summary = (
@@ -74,13 +85,13 @@ def getProjectReports(orgId):
                 # Project.name.label("project_name"),
                 User.id.label("user_id"),
                 User.full_name.label("user_full_name"),
-                func.sum(TimesheetEntry.hours).label("total_hours")
+                func.sum(TimesheetEntry.hours).label("total_hours"),
             )
             .select_from(Project)
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
             .join(Timesheet, Timesheet.id == TimesheetEntry.timesheet_id)
             .join(User, User.id == Timesheet.user_id)
-            .filter(Project.org_id == orgId)
+            .filter(Project.org_id == orgId, User.code.in_(userCodes))
             .group_by(User.full_name, User.id)
             .all()
         )

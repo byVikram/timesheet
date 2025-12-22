@@ -183,7 +183,7 @@ def resetUserPassword(userData):
         return None, str(e)
 
 
-def getUsers(page=1, per_page=10):
+def getUsers(page=1, per_page=10, showAll=False):
     """
     Retrieve a paginated list of users.
     Includes metadata: page, per_page, total, total_pages.
@@ -207,24 +207,46 @@ def getUsers(page=1, per_page=10):
             # .order_by(User.created_at.desc())
         )
 
-        users, meta = paginateQuery(query, page, per_page)
-        userList = []
+        if not showAll:
 
-        for user in users:
-            userList.append(
-                {
-                    "code": user.code,
-                    "name": user.full_name,
-                    "email": user.email,
-                    "is_active": user.is_active,
-                    "created_at": user.created_at,
-                    "updated_at": user.updated_at,
-                    "org_name": user.org_name,
-                    "role": user.role_name,
-                }
-            )
+            users, meta = paginateQuery(query, page, per_page)
+            userList = []
 
-        return {"users": userList, "meta": meta}, None
+            for user in users:
+                userList.append(
+                    {
+                        "code": user.code,
+                        "name": user.full_name,
+                        "email": user.email,
+                        "is_active": user.is_active,
+                        "created_at": user.created_at,
+                        "updated_at": user.updated_at,
+                        "org_name": user.org_name,
+                        "role": user.role_name,
+                    }
+                )
+
+            return {"users": userList, "meta": meta}, None
+
+        else:
+            users = query.all()
+            userList = []
+
+            for user in users:
+                userList.append(
+                    {
+                        "code": user.code,
+                        "name": user.full_name,
+                        "email": user.email,
+                        "is_active": user.is_active,
+                        "created_at": user.created_at,
+                        "updated_at": user.updated_at,
+                        "org_name": user.org_name,
+                        "role": user.role_name,
+                    }
+                )
+
+            return userList, None
 
     except Exception as e:
         return None, str(e)

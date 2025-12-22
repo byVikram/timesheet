@@ -126,7 +126,7 @@ class GetUserList(MethodView):
 
         try:
             usersData, error = getUsers(
-                page=requestObj["page"], per_page=requestObj["per_page"]
+                page=requestObj["page"], per_page=requestObj["per_page"], showAll=requestObj.get("show_all", False)
             )
 
             if error:
