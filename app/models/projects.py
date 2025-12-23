@@ -45,6 +45,7 @@ class Project(db.Model):
     timesheet_entries = db.relationship('TimesheetEntry', back_populates='project', lazy=True)
 
     # Relationships (lazy='select' so they are only loaded if accessed)
+    manager_user = db.relationship('User', back_populates='manager_projects', foreign_keys=[manager_id])
     created_by_user = db.relationship('User', back_populates='created_projects', foreign_keys=[created_by])
     updated_by_user = db.relationship('User', back_populates='updated_projects', foreign_keys=[updated_by])
 

@@ -19,3 +19,10 @@ ROLES = {
     "MANAGER": "Manager",
     "EMPLOYEE": "Employee",
 }
+
+DB_ROLE_ID = {
+    "SUPER_ADMIN":1,
+    "HR":2,
+    "MANAGER":3,
+    "EMPLOYEE":4
+}

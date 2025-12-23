@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import desc, func
 from app.constants.lookups import TIMESHEET_STATUS
 from app.models import Holiday, TimesheetStatus, Timesheet
 from app.models.projects import Project, Task
@@ -16,10 +16,10 @@ def getHolidays(orgId):
 	Fetch all holidays for the given organization.
 
 	Args:
-			orgId (int): Organization ID.
+					orgId (int): Organization ID.
 
 	Returns:
-			(list, error): A list of holidays or an error message.
+					(list, error): A list of holidays or an error message.
 	"""
 
 	try:
@@ -47,15 +47,15 @@ def getUserTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 	Fetch paginated timesheet records with filtering based on role and input data.
 
 	Args:
-			orgId (int): Organization ID (required for HR role).
-			userId (int): User ID (required for Employee role).
-			role (str): User role ("Super Admin", "HR", "Employee").
-			timesheetData (dict): Filter parameters.
-			page (int): Pagination page number.
-			per_page (int): Items per page.
+					orgId (int): Organization ID (required for HR role).
+					userId (int): User ID (required for Employee role).
+					role (str): User role ("Super Admin", "HR", "Employee").
+					timesheetData (dict): Filter parameters.
+					page (int): Pagination page number.
+					per_page (int): Items per page.
 
 	Returns:
-			dict, error: Returns response dict or error string.
+					dict, error: Returns response dict or error string.
 	"""
 
 	try:
@@ -79,6 +79,7 @@ def getUserTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 				TimesheetStatus.name,
 				User.full_name,
 			)
+			.order_by(desc(Timesheet.week_start))
 		)
 
 		query = query.filter(User.id == userId)
@@ -119,15 +120,15 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 	Fetch paginated timesheet records with filtering based on role and input data.
 
 	Args:
-			orgId (int): Organization ID (required for HR role).
-			userId (int): User ID (required for Employee role).
-			role (str): User role ("Super Admin", "HR", "Employee").
-			timesheetData (dict): Filter parameters.
-			page (int): Pagination page number.
-			per_page (int): Items per page.
+					orgId (int): Organization ID (required for HR role).
+					userId (int): User ID (required for Employee role).
+					role (str): User role ("Super Admin", "HR", "Employee").
+					timesheetData (dict): Filter parameters.
+					page (int): Pagination page number.
+					per_page (int): Items per page.
 
 	Returns:
-			dict, error: Returns response dict or error string.
+					dict, error: Returns response dict or error string.
 	"""
 
 	try:
@@ -169,25 +170,20 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 			)
 
 		if timesheetData.get("search"):
-			query = query.filter(
-				User.full_name.ilike(f"%{timesheetData['search']}%")
-			)
+			query = query.filter(User.full_name.ilike(f"%{timesheetData['search']}%"))
 
 		if timesheetData.get("user_code"):
-			query = query.filter(
-				User.code == timesheetData["user_code"]
-			)
+			query = query.filter(User.code == timesheetData["user_code"])
 
 		sort_columns = {
 			"user_name": User.full_name,
 			"week_start": Timesheet.week_start,
 			"week_end": Timesheet.week_end,
-			"status": Timesheet.status
+			"status": Timesheet.status,
 		}
 
 		sort_by = timesheetData.get("sort_by")
 		sort_direction = timesheetData.get("sort_direction", "asc").lower()
-
 
 		if sort_by in sort_columns:
 			column = sort_columns[sort_by]
@@ -313,21 +309,25 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
 
 		historyList = []
 		for history in entry.history:
+			print(history,"history")
+			new_status = history.new_status_obj.name if history.new_status_obj else None
+
+			if new_status == TIMESHEET_STATUS["CANCEL"]:
+				new_status = "Recall"
+
 			historyList.append(
 				{
 					"history_id": history.id,
 					"old_status": (
 						history.old_status_obj.name if history.old_status_obj else None
 					),
-					"new_status": (
-						history.new_status_obj.name if history.new_status_obj else None
-					),
+					"new_status": new_status,
 					"user": (
 						history.changed_by_user.full_name
 						if history.changed_by_user
 						else None
 					),
-					"time": history.created_at,
+					"date": formatDatetime(history.created_at, "%d/%m/%Y %I:%M %p"),
 				}
 			)
 
@@ -342,10 +342,6 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
 
 		result.append(
 			{
-				"previous_timesheet_code": (
-					prevTimesheet.code if prevTimesheet else None
-				),
-				"next_timesheet_code": nextTimesheet.code if nextTimesheet else None,
 				"timesheet_code": timesheet.code,
 				"timesheet_entry_code": entry.code,
 				"task_code": entry.task.code if entry.task else None,
@@ -360,9 +356,8 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
 				"status": entry.status_obj.name if entry.status_obj else None,
 				"comment": None,
 				"history": historyList,
-				"can_delete" : (
-					userRole == "Employee"
-					and entry.status == TIMESHEET_STATUS["DRAFT"]
+				"can_delete": (
+					userRole == "Employee" and entry.status == TIMESHEET_STATUS["DRAFT"]
 				),
 				"can_approve": (
 					userRole == "Manager"
@@ -379,11 +374,17 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
 
 	timesheetStatus = timesheet.status_obj.name if timesheet.status_obj else None
 
-	return {"timesheet_data": result, "timesheet_status": timesheetStatus, "week_start": formatDatetime(timesheet.week_start),
-		"week_end": formatDatetime(timesheet.week_end),}, None
+	return {
+		"timesheet_data": result,
+		"timesheet_status": timesheetStatus,
+		"week_start": formatDatetime(timesheet.week_start),
+		"week_end": formatDatetime(timesheet.week_end),
+		"previous_timesheet_code": (prevTimesheet.code if prevTimesheet else None),
+		"next_timesheet_code": nextTimesheet.code if nextTimesheet else None,
+	}, None
 
 
-def createTimesheetEntry(orgId, timesheetEntryData):
+def createTimesheetEntry(userId, orgId, timesheetEntryData):
 	"""
 	Create a TimesheetEntry under a given timesheet for the specified project and task.
 	Returns the created or existing entry.
@@ -396,7 +397,13 @@ def createTimesheetEntry(orgId, timesheetEntryData):
 		# Fetch timesheet
 		timesheet = Timesheet.query.get(timesheetId)
 		if not timesheet:
-			return None, f"Timesheet with id {timesheetEntryData['timesheet_id']} not found"
+			return (
+				None,
+				f"Timesheet with id {timesheetEntryData['timesheet_id']} not found",
+			)
+
+		if timesheet.user_id != userId:
+			return None, "Not authorized to add entry"
 
 		# Get project and task IDs from codes
 		projectId, project_error = getIdFromCode(
@@ -460,44 +467,51 @@ def createTimesheetEntry(orgId, timesheetEntryData):
 		db.session.rollback()
 		return None, str(e)
 
+
 def createTimesheetsForAllUsers():
-    try:
-        today = datetime.utcnow().date()
-        week_start = today - timedelta(days=today.weekday())  # Monday
-        week_end = week_start + timedelta(days=6)            # Sunday
+	try:
+		today = datetime.utcnow().date()
+		week_start = today - timedelta(days=today.weekday())  # Monday
+		week_end = week_start + timedelta(days=6)  # Sunday
 
-        # Fetch all user IDs
-        users = User.query.with_entities(User.id).all()
-        user_ids = [u.id for u in users]
+		# Fetch all user IDs
+		users = User.query.with_entities(User.id).all()
+		user_ids = [u.id for u in users]
 
-        # Fetch existing timesheets for this week
-        existing_ts = Timesheet.query.filter(
-            Timesheet.user_id.in_(user_ids),
-            Timesheet.week_start == week_start,
-            Timesheet.week_end == week_end
-        ).with_entities(Timesheet.user_id).all()
-        existing_user_ids = set([u.user_id for u in existing_ts])
+		# Fetch existing timesheets for this week
+		existing_ts = (
+			Timesheet.query.filter(
+				Timesheet.user_id.in_(user_ids),
+				Timesheet.week_start == week_start,
+				Timesheet.week_end == week_end,
+			)
+			.with_entities(Timesheet.user_id)
+			.all()
+		)
+		existing_user_ids = set([u.user_id for u in existing_ts])
 
-        # Prepare only new timesheets
-        timesheet_data = [
-            {
-                "user_id": uid,
-                "week_start": week_start,
-                "week_end": week_end,
-                "status": TIMESHEET_STATUS["DRAFT"],
-            }
-            for uid in user_ids if uid not in existing_user_ids
-        ]
+		# Prepare only new timesheets
+		timesheet_data = [
+			{
+				"user_id": uid,
+				"week_start": week_start,
+				"week_end": week_end,
+				"status": TIMESHEET_STATUS["DRAFT"],
+			}
+			for uid in user_ids
+			if uid not in existing_user_ids
+		]
 
-        if timesheet_data:
-            db.session.bulk_insert_mappings(Timesheet, timesheet_data)
-            db.session.commit()
+		if timesheet_data:
+			db.session.bulk_insert_mappings(Timesheet, timesheet_data)
+			db.session.commit()
 
-        return f"Created {len(timesheet_data)} new timesheets successfully", None
+		return f"Created {len(timesheet_data)} new timesheets successfully", None
 
-    except Exception as e:
-        db.session.rollback()
-        return None, str(e)
+	except Exception as e:
+		db.session.rollback()
+		return None, str(e)
+
 
 def deleteTimesheetEntry(userId, timesheetEntryData):
 	"""
@@ -511,7 +525,10 @@ def deleteTimesheetEntry(userId, timesheetEntryData):
 		).first()
 
 		if not entry:
-			return None, f"TimesheetEntry with code {timesheetEntryData['timesheet_entry_code']} not found"
+			return (
+				None,
+				f"TimesheetEntry with code {timesheetEntryData['timesheet_entry_code']} not found",
+			)
 
 		if entry.timesheet.user_id != userId:
 			return None, "Not authorized to delete particular timesheet entry"
@@ -527,6 +544,7 @@ def deleteTimesheetEntry(userId, timesheetEntryData):
 	except Exception as e:
 		db.session.rollback()
 		return None, str(e)
+
 
 # def updateTimesheet(userCode, timesheetData):
 # 	"""
@@ -608,10 +626,10 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
 	"""
 	Update hours and notes for multiple timesheet entries for a user.
 	Expects timesheetsData to be a list of objects containing:
-									- project_code
-									- task_code
-									- time_records: list of {"date": "YYYY-MM-DD", "hours": float, "note": str}
-									- comment (optional, applies to the Timesheet)
+																	- project_code
+																	- task_code
+																	- time_records: list of {"date": "YYYY-MM-DD", "hours": float, "note": str}
+																	- comment (optional, applies to the Timesheet)
 	"""
 
 	responses = []
@@ -684,10 +702,20 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
 		TimesheetEntry.query.filter_by(id=entry.id).update(
 			{"time_records": entry.time_records, "hours": total_hours}
 		)
-		# db.session.commit()
-
-		db.session.add(timesheet)
 		db.session.commit()
+
+		if timesheetsData["action"] == "submit":
+			TimesheetEntry.query.filter_by(id=entry.id).update(
+				{"status": TIMESHEET_STATUS['PENDING_APPROVAL']}
+			)
+			db.session.commit()
+
+			data = {
+				"action": "submit",
+				"timesheet_code": timesheetsData["timesheet_code"],
+			}
+
+			reviewTimesheet(userId, data)
 
 		# Prepare response
 		response = {
@@ -742,7 +770,6 @@ def reviewTimesheet(userId, timesheetData):
 			if not timesheetEntry:
 				return None, "Invalid timesheet_entry_code"
 
-
 		if action == "submit":
 			if timesheet.status == TIMESHEET_STATUS["DRAFT"]:
 				timesheet.status = TIMESHEET_STATUS["PENDING_APPROVAL"]
@@ -766,19 +793,24 @@ def reviewTimesheet(userId, timesheetData):
 
 		if action == "cancel":
 			if timesheet.status == TIMESHEET_STATUS["PENDING_APPROVAL"]:
-				timesheet.status = TIMESHEET_STATUS["CANCEL"]
+				timesheet.status = TIMESHEET_STATUS["DRAFT"]
 
 				for entry in timesheetEntries:
+					# print(entry,"entry")
 
-					history = TimesheetHistory(
-						timesheet_id=entry.id,
-						old_status=entry.status,
-						new_status=timesheet.status,
-						changed_by=userId,
-						comment=timesheetData.get("comment"),
-					)
+					history = TimesheetHistory.query.filter_by(timesheet_entry_id=entry.id).all()
+
+					# history = TimesheetHistory(
+					# 	timesheet_entry_id=entry.id,
+					# 	old_status=entry.status,
+					# 	new_status=timesheet.status,
+					# 	changed_by=userId,
+					# 	comment=timesheetData.get("comment"),
+					# )
 					entry.status = timesheet.status
-					db.session.add(history)
+					for h in history:
+						db.session.delete(h)
+
 					db.session.commit()
 
 				return "Timesheet cancelled successfully", None

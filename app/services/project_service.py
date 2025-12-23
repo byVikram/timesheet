@@ -1,6 +1,7 @@
 from app.models import Project, User, Task
 from app.services.common_service import getIdFromCode
 from app.extensions import db
+from app.utils.helpers import formatDatetime
 
 
 def getProjects(orgId):
@@ -23,13 +24,39 @@ def getProjects(orgId):
                     "code": project.code,
                     "name": project.name,
                     "description": project.description,
-                    "start_date": project.start_date,
-                    "end_date": project.end_date,
+                    "start_date": formatDatetime(project.start_date, "%d %b %Y"),
+                    "end_date": formatDatetime(project.end_date,"%d %b %Y"),
                     "active": project.active,
                 }
             )
 
         return projectList, None
+
+    except Exception as e:
+        return None, str(e)
+    
+
+def getProjectDetails(projectCode):
+    """
+
+    """
+
+    try:
+
+        project = Project().query.filter_by(code=projectCode).first()
+
+        if not project:
+            return None, "Invalid project_code"
+
+        projectData = {
+            "name" : project.name,
+            "manager_name": project.created_by_user.full_name,
+            "description":project.description,
+            "start_date":project.start_date,
+            "end_date":project.end_date,
+            "active":project.active,
+        }
+        return projectData, None
 
     except Exception as e:
         return None, str(e)
@@ -95,6 +122,11 @@ def createTask(taskData):
 
         if error:
             return None, error
+        
+        existingTask = Task.query.filter_by(name=taskData["name"], project_id=projectId).first()
+
+        if existingTask:
+            return None, "Same task exist for this Project"
 
         task = Task(
             project_id=projectId,

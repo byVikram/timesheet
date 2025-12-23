@@ -180,7 +180,7 @@ class CreateTimesheetEntry(MethodView):
 	@authorize(["ALL"])
 	def post(self, timesheetEntryData):
 		try:
-			timesheet, error = createTimesheetEntry(self.orgId, timesheetEntryData)
+			timesheet, error = createTimesheetEntry(self.userId, self.orgId, timesheetEntryData)
 
 			if error:
 				return getErrorMessage(error), 400
@@ -245,7 +245,7 @@ class ReviewTimesheet(MethodView):
 	@blp.doc(description="Update timesheet status by reviewing it")
 	@blp.arguments(ReviewTimesheetSchema)
 	@tokenValidation
-	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
+	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"],  ROLES["EMPLOYEE"]])
 	def post(self, timesheetData):
 		try:
 			timesheet, error = reviewTimesheet(self.userId, timesheetData)
@@ -254,8 +254,8 @@ class ReviewTimesheet(MethodView):
 				return getErrorMessage(error), 400
 
 			return getSuccessMessage(
-				"",
 				timesheet,
+				"",
 			)
 
 		except Exception as e:

@@ -1,6 +1,9 @@
 
 from marshmallow import Schema, fields, validate
 
+class ProjectDetailsSchema(Schema):
+    project_code = fields.Str(required=True)
+
 class ProjectCreationSchema(Schema):
     name = fields.Str(required=True, validate=validate.Length(min=3, max=100))
     description = fields.Str()

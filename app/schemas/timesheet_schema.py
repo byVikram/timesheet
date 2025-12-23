@@ -39,7 +39,8 @@ class DeleteTimesheetEntrySchema(Schema):
 
 
 class TimeRecordSchema(Schema):
-    date = fields.Date(required=True)
+    # date = fields.Date(required=True)
+    date = fields.Str(required=True)
     hours = fields.Float(required=True, validate=validate.Range(min=0))
     note = fields.Str(allow_none=True)
 
@@ -55,6 +56,8 @@ class UpdateTimesheetSchema(Schema):
 
 
 class UpdateTimesheetsSchema(Schema):
+    timesheet_code= fields.Str(required=True)
+    action=fields.Str(required=True)
     timesheets = fields.List(fields.Nested(UpdateTimesheetSchema), required=True)
 
 

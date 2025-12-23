@@ -1,4 +1,5 @@
 
+from app.constants.lookups import DB_ROLE_ID
 from app.extensions import db
 from app.models import User, UserRole, Project, UserProject
 from app.models.timesheets import TimesheetStatus
@@ -183,7 +184,7 @@ def resetUserPassword(userData):
         return None, str(e)
 
 
-def getUsers(page=1, per_page=10, showAll=False):
+def getUsers(variant, page=1, per_page=10):
     """
     Retrieve a paginated list of users.
     Includes metadata: page, per_page, total, total_pages.
@@ -207,7 +208,7 @@ def getUsers(page=1, per_page=10, showAll=False):
             # .order_by(User.created_at.desc())
         )
 
-        if not showAll:
+        if variant == "paginated":
 
             users, meta = paginateQuery(query, page, per_page)
             userList = []
@@ -228,7 +229,30 @@ def getUsers(page=1, per_page=10, showAll=False):
 
             return {"users": userList, "meta": meta}, None
 
-        else:
+        if variant == "all":
+            users = query.all()
+            userList = []
+
+            for user in users:
+                userList.append(
+                    {
+                        "code": user.code,
+                        "name": user.full_name,
+                        "email": user.email,
+                        "is_active": user.is_active,
+                        "created_at": user.created_at,
+                        "updated_at": user.updated_at,
+                        "org_name": user.org_name,
+                        "role": user.role_name,
+                    }
+                )
+
+            return userList, None
+        
+        if variant == "manager":
+
+            query = query.filter(UserRole.id == DB_ROLE_ID['MANAGER'])
+
             users = query.all()
             userList = []
 

@@ -19,9 +19,9 @@ class UserLoginSchema(Schema):
     password = fields.Str(required=True)
 
 class GetUsersSchema(Schema):
-    page=fields.Integer()
-    per_page=fields.Integer()
-    show_all=fields.Boolean()
+    page=fields.Integer(load_default=1)
+    per_page=fields.Integer(load_default=10)
+    variant=fields.Str()
 
 
 class UserCodeSchema(Schema):

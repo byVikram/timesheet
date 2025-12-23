@@ -1,8 +1,8 @@
 
 from flask.views import MethodView
 from flask_smorest import Blueprint
-from app.schemas.project_schema import GetTasksSchema, ProjectCreationSchema, TaskCreationSchema
-from app.services.project_service import createProject, createTask, getProjects, getTasks
+from app.schemas.project_schema import GetTasksSchema, ProjectCreationSchema, ProjectDetailsSchema, TaskCreationSchema
+from app.services.project_service import createProject, createTask, getProjectDetails, getProjects, getTasks
 from app.utils.helpers import authorize, getErrorMessage, getSuccessMessage, tokenValidation
 
 blp = Blueprint(
@@ -13,7 +13,7 @@ blp = Blueprint(
 
 
 @blp.route("/search")
-class GetUserList(MethodView):
+class GetProjectList(MethodView):
 
 	@tokenValidation
 	@authorize(['Super Admin', 'HR'])
@@ -28,6 +28,30 @@ class GetUserList(MethodView):
 
 			return getSuccessMessage(
 				"Projects list fetched successfully",
+				projects,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
+@blp.route("/details")
+class GetProjectDetails(MethodView):
+
+	@blp.arguments(ProjectDetailsSchema, location="query")
+	@tokenValidation
+	@authorize(['Super Admin', 'HR'])
+
+	def get(self, projectData):
+		try:
+
+			projects, error = getProjectDetails(projectData['project_code'])
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				"Projects details fetched successfully",
 				projects,
 			)
 
@@ -51,7 +75,7 @@ class CreateProjects(MethodView):
 				return getErrorMessage(error), 400
 
 			return getSuccessMessage(
-				"Projects list fetched successfully",
+				"Projects created successfully",
 				projects,
 			)
 
