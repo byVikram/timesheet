@@ -1,4 +1,5 @@
 from app.models import Project, User, Task
+from app.models.users import UserProject
 from app.services.common_service import getIdFromCode
 from app.extensions import db
 from app.utils.helpers import formatDatetime
@@ -34,7 +35,7 @@ def getProjects(orgId):
 
     except Exception as e:
         return None, str(e)
-    
+
 
 def getProjectDetails(projectCode):
     """
@@ -45,16 +46,43 @@ def getProjectDetails(projectCode):
 
         project = Project().query.filter_by(code=projectCode).first()
 
+
+
         if not project:
             return None, "Invalid project_code"
+
+        # users = UserProject().join(User, User.id == UserProject.user_id).query.filter_by(project_id=project.id).all()
+        users = db.session.query(
+                    User.full_name,
+                    User.code,
+                    UserProject.is_active
+                ).join(UserProject, User.id == UserProject.user_id)\
+                .filter(UserProject.project_id == project.id)\
+                .all()
+
+
+
+        userList = []
+
+        if users:
+
+            for user in users:
+                userList.append({
+                    "name":user.full_name,
+                    "code":user.code,
+                    "is_active":user.is_active
+                })
+
 
         projectData = {
             "name" : project.name,
             "manager_name": project.created_by_user.full_name,
+            "manager_code": project.created_by_user.code,
             "description":project.description,
             "start_date":project.start_date,
             "end_date":project.end_date,
             "active":project.active,
+            "user_list":userList
         }
         return projectData, None
 
@@ -115,6 +143,51 @@ def createProject(orgId, userId, projectData):
 
 
 
+def updateProject(orgId, projectData):
+    """
+
+    """
+
+    try:
+
+        mangerId, error3 = getIdFromCode(User, projectData["manager_code"])
+
+        if error3:
+            return None, error3
+
+        project =  Project.query.filter_by(code=projectData['project_code']).first()
+
+        if not project:
+            return None, "Project does not exist"
+
+
+        project.description = projectData.get("description")
+        project.start_date = projectData.get("descristart_dateption")
+        project.end_date = projectData.get("end_date")
+        project.active = projectData.get("active", True)
+        project.manager_id = mangerId
+
+        db.session.commit()
+
+        if not project.id:
+            return None, "Project creation failed"
+
+        data = {
+            "code": project.code,
+            "name": project.name,
+            "description": project.description,
+            "start_date": project.start_date,
+            "end_date": project.end_date,
+            "active": project.active,
+        }
+
+        return data, None
+
+    except Exception as e:
+        return None, str(e)
+
+
+
 def createTask(taskData):
     try:
 
@@ -122,7 +195,7 @@ def createTask(taskData):
 
         if error:
             return None, error
-        
+
         existingTask = Task.query.filter_by(name=taskData["name"], project_id=projectId).first()
 
         if existingTask:

@@ -151,8 +151,8 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 				User.full_name.label("user_name"),
 				func.coalesce(func.sum(TimesheetEntry.hours), 0).label("total_hours"),
 			)
-			.join(User, User.id == Timesheet.user_id)
-			.join(TimesheetStatus, TimesheetStatus.id == Timesheet.status)
+			.outerjoin(User, User.id == Timesheet.user_id)
+			.outerjoin(TimesheetStatus, TimesheetStatus.id == Timesheet.status)
 			.join(TimesheetEntry, TimesheetEntry.timesheet_id == Timesheet.id)
 			.join(Project, TimesheetEntry.project_id == Project.id)
 			.group_by(
@@ -173,10 +173,13 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 			)
 		)
 
+		print(role,"role")
+
 		if role == "HR":
 			query = query.filter(User.org_id == orgId)
 
-		if role == "Manger":
+		if role == "Manager":
+			print("Manager")
 			query = query.filter(Project.manager_id == userId)
 
 		elif role == "Employee":

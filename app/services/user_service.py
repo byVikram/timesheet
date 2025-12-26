@@ -433,7 +433,7 @@ def assignProject(authorUserId, projectData):
             return None, error2 or error3
 
         if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
-            return None, "Project already exists"
+            return None, "User exist in the project."
 
         userProject = UserProject(
             user_id=userId,

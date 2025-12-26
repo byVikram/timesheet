@@ -11,6 +11,8 @@ class ProjectCreationSchema(Schema):
     end_date = fields.Date()
     manager_code = fields.Str()
 
+    project_code=fields.Str()
+
 class TaskCreationSchema(Schema):
     project_code = fields.Str(required=True)
     name = fields.Str(required=True, validate=validate.Length(min=2, max=100))

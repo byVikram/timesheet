@@ -26,7 +26,7 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "*"}})
 
     # setupLogger(app)
-    # setupLambdaLogger(app)
+    setupLambdaLogger(app)
 
     # Database
     app.config['SQLALCHEMY_DATABASE_URI'] = (

@@ -182,7 +182,7 @@ class AssignProject(MethodView):
                 return getErrorMessage(error), 400
 
             return getSuccessMessage(
-                "Record created successfully",
+                "Project assigned successfully",
                 userProject,
             )
 
