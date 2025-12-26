@@ -7,7 +7,6 @@ from flask_cors import CORS  # <-- import at the top
 from app.utils.helpers import setupLambdaLogger, setupLogger
 
 from .extensions import db, ma, migrate, api
-# from .models import *      # Needed for migrations  # noqa: F403
 
 
 
@@ -26,7 +25,7 @@ def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
 
-    setupLogger(app)
+    # setupLogger(app)
     # setupLambdaLogger(app)
 
     # Database
@@ -63,3 +62,8 @@ def create_app():
 
 
     return app
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(debug=True)

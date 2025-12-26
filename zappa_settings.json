@@ -1,0 +1,18 @@
+{
+    "dev": {
+        "app_function": "app.app",
+        "aws_region": "us-east-1",
+        "exclude": [
+            ".env",
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent"
+        ],
+        "profile_name": "stellarTimesheet",
+        "project_name": "timesheet",
+        "runtime": "python3.12",
+        "s3_bucket": "zappa-timesheet-dev"
+    }
+}
