@@ -16,7 +16,7 @@ blp = Blueprint(
 class GetProjectList(MethodView):
 
 	@tokenValidation
-	@authorize(['Super Admin', 'HR'])
+	@authorize(['Super Admin', 'HR', 'Manager'])
 
 	def get(self):
 		try:

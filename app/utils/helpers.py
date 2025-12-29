@@ -1,9 +1,14 @@
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 from functools import wraps
 import json
-from flask import current_app, request, g
+from flask import current_app, jsonify, request, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, timezone
 from jose import jwt
+import secrets
+import string
 
 import os
 import logging
@@ -208,15 +213,17 @@ def getSuccessMessage(message, data):
 		"data": data,
 	}
 
-	return message_body
+	return jsonify(message_body)
 
 
 def getErrorMessage(message):
-	return {
+	message_body =  {
 		"status": "error",
 		"title": "Oops... Something went wrong!",
 		"message": message,
 	}
+
+	return jsonify(message_body)
 
 
 def hashPassword(password: str) -> str:
@@ -276,6 +283,103 @@ def formatDatetime(dt, fmt="%d/%m/%Y"):
 	else:
 		return dt.strftime(fmt)
 
+
+def emailSender(emailAddress, emailSubject, emailBody):
+
+	"""
+	Sends an HTML email using Gmail SMTP.
+
+	Parameters:
+		emailAddress (str): Recipient's email address
+		emailSubject (str): Subject line of the email
+		emailBody (str): HTML content of the email
+
+	Returns:
+		bool: True if email sent successfully, False otherwise
+	"""
+
+	try:
+		senderEmail = current_app.config['APP_EMAIL_ADDRESS']
+		senderEmailPwd = current_app.config['APP_EMAIL_ADDRESS_PASSWORD']
+
+
+		msg = MIMEMultipart()
+		msg['From'] = senderEmail
+		msg['To'] = emailAddress
+		msg['Subject'] = emailSubject
+
+		msg.attach(MIMEText(emailBody, 'html'))
+
+		server = smtplib.SMTP('smtp.gmail.com', 587)
+		server.starttls()
+		server.login(senderEmail, senderEmailPwd)
+		text = msg.as_string()
+		server.sendmail(senderEmail, emailAddress, text)
+		server.quit()
+
+		current_app.logger.error("returning from emailSender")
+		return True
+
+	except smtplib.SMTPDataError as e:
+		current_app.logger.error("SMTPDataError: %s", str(e))
+		return False
+
+	except Exception as e:
+		current_app.logger.error(f"Error while sending email inside emailSender Definition inside util.py: {str(e)}")
+		return False
+
+
+
+def sendEmailFromTemplate(templatePath, subject, userData):
+	"""
+	Reads an HTML email template, replaces placeholders with user-specific data,
+	and sends a welcome email.
+
+	Args:
+		template_path (str): Path to the HTML template file.
+		subject (str): Subject line for the email.
+		user_data (dict): Dictionary containing the following keys:
+			- 'first_name': Recipient's first name
+			- 'email_address': Recipient's email address
+			- 'password_url': URL for setting the password
+
+	Returns:
+		bool: True if the email was sent successfully, False otherwise.
+	"""
+	try:
+		with open(templatePath, "r") as file:
+			html_template = file.read()
+
+		# Replace placeholders with actual user data
+		htmlContent = (
+			html_template
+			.replace("[LOGIN_URL]", current_app.config['LOGIN_URL'])
+			.replace("[EMAIL]", userData['email'])
+			.replace("[NAME]", userData['name'])
+			.replace("[TEMP_PASSWORD]", userData['TEMP_PASSWORD'])
+			.replace("[HR_EMAIL]", current_app.config['HR_EMAIL'])
+			.replace("[HR_PHONE]", current_app.config['HR_PHONE'])
+			.replace("[CURRENT_YEAR]", str(datetime.now().year))
+		)
+
+		return emailSender(userData['email'], subject, htmlContent)
+
+	except Exception as e:
+		current_app.logger.error(
+			"Error while sending welcome email in send_email_from_template: %s", str(e)
+		)
+		return False
+
+
+
+
+def generatepwd(length: int = 12) -> str:
+    chars = (
+        string.ascii_letters +
+        string.digits +
+        "!@#$%^&*()_+-="
+    )
+    return "".join(secrets.choice(chars) for _ in range(length))
 
 
 

@@ -153,8 +153,8 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 			)
 			.outerjoin(User, User.id == Timesheet.user_id)
 			.outerjoin(TimesheetStatus, TimesheetStatus.id == Timesheet.status)
-			.join(TimesheetEntry, TimesheetEntry.timesheet_id == Timesheet.id)
-			.join(Project, TimesheetEntry.project_id == Project.id)
+			.outerjoin(TimesheetEntry, TimesheetEntry.timesheet_id == Timesheet.id)
+			.outerjoin(Project, TimesheetEntry.project_id == Project.id)
 			.group_by(
 				Timesheet.code,
 				Timesheet.week_start,
@@ -190,10 +190,12 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 				TimesheetStatus.code == timesheetData["timesheet_status"]
 			)
 
-		if timesheetData.get("search"):
+		if timesheetData.get("search") and timesheetData['search'] != "":
+			print("Search")
 			query = query.filter(User.full_name.ilike(f"%{timesheetData['search']}%"))
 
 		if timesheetData.get("user_code"):
+			print("user_code")
 			query = query.filter(User.code == timesheetData["user_code"])
 
 		sort_columns = {
@@ -218,6 +220,8 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 				query = query.order_by(column.desc())
 			else:
 				query = query.order_by(column.asc())
+
+		print(query,"query")
 
 		allTimesheets, meta = paginateQuery(query, page, per_page)
 		timesheetList = []
@@ -803,6 +807,8 @@ def reviewTimesheet(userId, timesheetData):
 				return None, "Invalid timesheet_entry_code"
 
 		if action == "submit":
+			print("here")
+			print(timesheet.status)
 			if timesheet.status == TIMESHEET_STATUS["DRAFT"]:
 				timesheet.status = TIMESHEET_STATUS["PENDING_APPROVAL"]
 
@@ -821,6 +827,7 @@ def reviewTimesheet(userId, timesheetData):
 
 				return "Timesheet submitted successfully", None
 
+			print("returning")
 			return None, "Timesheet not able to submit"
 
 		if action == "cancel":

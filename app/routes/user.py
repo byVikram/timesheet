@@ -3,6 +3,7 @@ from flask_smorest import Blueprint
 from app.constants.lookups import ROLES
 from app.schemas.user_schema import (
     AssignProjectSchema,
+    GetUserDetailsSchema,
     GetUsersSchema,
     ResetPasswordSchema,
     UserCodeSchema,
@@ -13,6 +14,7 @@ from app.schemas.user_schema import (
 from app.services.user_service import (
     assignProject,
     createUser,
+    getUserDetails,
     getUserProjects,
     getUserRoles,
     getUsers,
@@ -74,7 +76,7 @@ class ResetPassword(MethodView):
 class GetUserRoles(MethodView):
 
     @tokenValidation
-    @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"]])
+    @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
     def get(self):
 
         try:
@@ -107,10 +109,12 @@ class RegisterUser(MethodView):
             org_code = user_data.get("org_code", self.orgCode)
             new_user, error = createUser(org_code, user_data)
 
-            if error:
-                return getErrorMessage(error), 400
+            print(error,"++error")
 
-            return getSuccessMessage("User created successfully", new_user)
+            if error:
+                return getErrorMessage(str(error)), 400
+
+            return getSuccessMessage("User created successfully", new_user), 200
 
         except Exception as e:
             return getErrorMessage(str(e)), 500
@@ -134,6 +138,28 @@ class GetUserList(MethodView):
 
             return getSuccessMessage(
                 "Users list fetched successfully",
+                usersData,
+            )
+
+        except Exception as e:
+            return getErrorMessage(str(e)), 500
+        
+@blp.route("/details")
+class GetUserDetails(MethodView):
+
+    @blp.arguments(GetUserDetailsSchema)
+    @tokenValidation
+    @authorize(["Super Admin", "HR", "Manager"])
+    def post(self, requestObj):
+
+        try:
+            usersData, error = getUserDetails(requestObj.get("user_code"))
+
+            if error:
+                return getErrorMessage(error), 400
+
+            return getSuccessMessage(
+                "Users data fetched successfully",
                 usersData,
             )
 

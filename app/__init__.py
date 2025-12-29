@@ -47,6 +47,13 @@ def create_app():
     app.config['OPENAPI_SWAGGER_UI_PATH'] = os.getenv('OPENAPI_SWAGGER_UI_PATH', "/swagger")
     app.config['OPENAPI_SWAGGER_UI_URL'] = os.getenv('OPENAPI_SWAGGER_UI_URL')
 
+
+    app.config['APP_EMAIL_ADDRESS'] = os.getenv('APP_EMAIL_ADDRESS')
+    app.config['APP_EMAIL_ADDRESS_PASSWORD'] = os.getenv('APP_EMAIL_ADDRESS_PASSWORD')
+    app.config['LOGIN_URL'] = os.getenv('LOGIN_URL')
+    app.config['HR_EMAIL'] = os.getenv('HR_EMAIL')
+    app.config['HR_PHONE'] = os.getenv('HR_PHONE')
+
     # Init extensions
     db.init_app(app)
     ma.init_app(app)

@@ -1,17 +1,23 @@
 
-from app.constants.lookups import DB_ROLE_ID
+from app.constants.lookups import DB_ROLE_ID, EMAIL_SUBJECTS
 from app.extensions import db
 from app.models import User, UserRole, Project, UserProject
 from app.models.timesheets import TimesheetStatus
 from app.models.users import Organization
 from app.services.common_service import getIdFromCode
+from sqlalchemy.exc import SQLAlchemyError
 
 
+
+from app.services.timesheet_service import createTimesheetsForAllUsers
 from app.utils.helpers import (
+    formatDatetime,
     generateRefreshToken,
     generateToken,
+    generatepwd,
     hashPassword,
     paginateQuery,
+    sendEmailFromTemplate,
     verifyPassword,
 )
 
@@ -79,7 +85,7 @@ def getUserRoles():
 
     try:
         # roles = UserRole.query.all()
-        SUPER_ADMIN_CODE = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        SUPER_ADMIN_CODE = "5d5f9f52-7ac1-4c1c-b9a1-2e6d2eb8f441"
 
         roles = UserRole.query.filter(UserRole.code != SUPER_ADMIN_CODE).all()
 
@@ -88,8 +94,8 @@ def getUserRoles():
         for role in roles:
             roleList.append(
                 {
-                    "code": role.code,
-                    "name": role.name,
+                    "value": role.code,
+                    "label": role.name,
                     "description": role.description,
                 }
             )
@@ -107,45 +113,82 @@ def createUser(org_code, user_data):
     """
 
     try:
+
         orgId, error1 = getIdFromCode(Organization, org_code)
-        roleId, error2 = getIdFromCode(UserRole, user_data["role_code"])
+        roleId, error2 = getIdFromCode(UserRole, user_data["role"])
 
         if error1 or error2:
             return None, error1 or error2
 
         if User.query.filter_by(email=user_data["email"]).first():
-            return {"status": "error", "message": "Email already exists"}, 400
+            print("exist")
+            return None, "Email already exists"
 
-        if User.query.filter_by(username=user_data["username"]).first():
-            return {"status": "error", "message": "Username already exists"}, 400
+        # if User.query.filter_by(username=user_data["username"]).first():
+        #     return {"status": "error", "message": "Username already exists"}, 400
+
+        password=generatepwd()
 
         new_user = User(
-            username=user_data["username"],
+            # username=user_data["username"],
             email=user_data["email"],
-            password=hashPassword(user_data["password"]),
+            password=hashPassword(password),
             org_id=orgId,
             role_id=roleId,
-            full_name=user_data["full_name"],
+            full_name=user_data["name"],
         )
         db.session.add(new_user)
-        db.session.commit()
+        db.session.flush()
+
 
         if not new_user.id:
             return None, "User creation failed"
 
+
+        email_data = {
+            "user_code": new_user.code,
+            "email": new_user.email,
+            "name": new_user.full_name,
+            "is_active": new_user.is_active,
+            "TEMP_PASSWORD": password,
+        }
+
+
+
+        emailSent = sendEmailFromTemplate("app/templates/welcome.html",EMAIL_SUBJECTS["WELCOME"], email_data)
+
+        if not emailSent:
+            return None, "Failed to send Welcome Email to user"
+
+        _, timesheetError = createTimesheetsForAllUsers()
+
+        if timesheetError:
+            return None, timesheetError
+
+
         newUserData = {
             "user_code": new_user.code,
-            "username": new_user.username,
+            # "username": new_user.username,
             "email": new_user.email,
-            "full_name": new_user.full_name,
+            "name": new_user.full_name,
             "is_active": new_user.is_active,
         }
 
+        db.session.commit()
         return newUserData, None
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return None, "Database error occurred"
+
+    except KeyError as e:
+        return None, f"Missing required field: {str(e)}"
 
     except Exception as e:
         db.session.rollback()
         return None, str(e)
+
+
 
 
 def resetUserPassword(userData):
@@ -171,7 +214,6 @@ def resetUserPassword(userData):
         db.session.commit()
 
         updatedUserData = {
-            "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
             "is_active": user.is_active,
@@ -248,7 +290,7 @@ def getUsers(variant, page=1, per_page=10):
                 )
 
             return userList, None
-        
+
         if variant == "manager":
 
             query = query.filter(UserRole.id == DB_ROLE_ID['MANAGER'])
@@ -272,6 +314,30 @@ def getUsers(variant, page=1, per_page=10):
 
             return userList, None
 
+    except Exception as e:
+        return None, str(e)
+
+
+def getUserDetails(userCode):
+    try:
+
+        user = User.query.filter_by(code=userCode).first()
+
+        if not user:
+            return None, "User does not exist"
+
+        userData = {
+            "name":user.full_name,
+            "role":user.role.name,
+            "role_code":user.role.code,
+            "email":user.email,
+            "org_name":user.organization.name,
+            "is_active":user.is_active,
+            "created_at": formatDatetime(user.created_at),
+            "updated_at": formatDatetime(user.updated_at)
+        }
+
+        return userData, None
     except Exception as e:
         return None, str(e)
 

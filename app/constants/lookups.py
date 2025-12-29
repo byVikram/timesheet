@@ -26,3 +26,8 @@ DB_ROLE_ID = {
     "MANAGER":3,
     "EMPLOYEE":4
 }
+
+
+EMAIL_SUBJECTS = {
+    "WELCOME":"Welcome to Stellar IT Solutions"
+}

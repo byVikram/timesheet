@@ -250,6 +250,9 @@ class ReviewTimesheet(MethodView):
 		try:
 			timesheet, error = reviewTimesheet(self.userId, timesheetData)
 
+			print(timesheet,"Timesheet")
+			print(error,"error")
+
 			if error:
 				return getErrorMessage(error), 400
 

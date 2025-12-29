@@ -60,9 +60,22 @@ def getProjectDetails(projectCode):
                 .filter(UserProject.project_id == project.id)\
                 .all()
 
+        # tasks = db
+
+        print(project.tasks,"tasks")
 
 
         userList = []
+        taskList = []
+
+        if project.tasks:
+            for task in project.tasks:
+                taskList.append({
+                    "code":task.code,
+                    "name":task.name,
+                    "description":task.description,
+                    "is_active":task.is_active
+                })
 
         if users:
 
@@ -76,13 +89,14 @@ def getProjectDetails(projectCode):
 
         projectData = {
             "name" : project.name,
-            "manager_name": project.created_by_user.full_name,
-            "manager_code": project.created_by_user.code,
+            "manager_name": project.manager_user.full_name,
+            "manager_code": project.manager_user.code,
             "description":project.description,
             "start_date":project.start_date,
             "end_date":project.end_date,
             "active":project.active,
-            "user_list":userList
+            "user_list":userList,
+            "task_list":taskList
         }
         return projectData, None
 

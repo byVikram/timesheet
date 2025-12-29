@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Account Created</title>
+    <style>
+        /* Reset styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Email wrapper */
+        .email-wrapper {
+            max-width: 799px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background-color: #ffffff;
+            padding: 25px 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 3px solid #4a6ee0;
+        }
+
+        .company-logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* Content */
+        .content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .welcome-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #444;
+            margin-bottom: 25px;
+        }
+
+        .credentials-box {
+            background-color: #f8f9ff;
+            border-left: 4px solid #4a6ee0;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .credentials-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .credential-item {
+            margin-bottom: 12px;
+            display: flex;
+        }
+
+        .credential-label {
+            font-weight: 600;
+            color: #555;
+            width: 120px;
+        }
+
+        .credential-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            background-color: #f1f3f9;
+            padding: 6px 12px;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .highlight {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .instructions {
+            background-color: #fff9e6;
+            border: 1px solid #ffeb99;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .login-button {
+            display: inline-block;
+            background-color: #4a6ee0;
+            color: white;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .login-button:hover {
+            background-color: #3a5bc7;
+        }
+
+        .support-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #4a6ee0;
+            text-decoration: none;
+        }
+
+        /* Responsive adjustments */
+        @media screen and (max-width: 600px) {
+            .email-wrapper {
+                padding: 10px;
+            }
+
+            .header,
+            .content {
+                padding: 20px;
+            }
+
+            .credential-item {
+                flex-direction: column;
+            }
+
+            .credential-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-wrapper">
+        <!-- Header -->
+        <div class="header">
+            <!-- Replace with your company logo URL -->
+            <img src="https://oh5.33c.myftpupload.com/wp-content/uploads/2023/10/stellar-it-logo.png" alt="Stellar IT Solutions"
+                class="company-logo">
+            <h1>Welcome to Stellar IT Solutions</h1>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p class="welcome-text">
+                Dear <strong>[NAME]</strong>,<br><br>
+                Welcome to <strong>Stellar IT Solutions</strong>! We're excited to have you on board.
+                To help you log your work hours efficiently, we've created an account for you in our timesheet
+                application.
+            </p>
+
+            <div class="credentials-box">
+                <div class="credentials-title">Your Login Credentials</div>
+
+                <div class="credential-item">
+                    <div class="credential-label">Login URL:</div>
+                    <div class="credential-value">[LOGIN_URL]</div>
+                </div>
+
+                <div class="credential-item">
+                    <div class="credential-label">Email:</div>
+                    <div class="credential-value">[EMAIL]</div>
+                </div>
+
+                <div class="credential-item">
+                    <div class="credential-label">Password:</div>
+                    <div class="credential-value">[TEMP_PASSWORD]</div>
+                </div>
+            </div>
+
+            <p class="highlight">Important: Please change your password after your first login for security.</p>
+
+            <div class="instructions">
+                <h3>Getting Started Instructions:</h3>
+                <ol>
+                    <li>Click the login button below or visit the login URL above</li>
+                    <li>Enter your email and temporary password</li>
+                    <li>Complete your timesheet profile if required</li>
+                    <li>Start logging your hours according to company guidelines</li>
+                </ol>
+            </div>
+
+            <div class="button-container">
+                <a href="[LOGIN_URL]" class="login-button">Login to Timesheet App</a>
+            </div>
+
+            <div class="support-info">
+                <p><strong>Need Help?</strong></p>
+                <p>If you encounter any issues logging in or have questions about the timesheet system, please contact:
+                </p>
+                <p>
+                    <strong>HR Department:</strong> [HR_EMAIL] | [HR_PHONE]<br>
+                    <!-- <strong>Technical Support:</strong> [IT Support Email] | [IT Support Phone] -->
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>This is an automated message from <strong>Stellar IT Solutions</strong> HR Department.</p>
+            <p>&copy; [CURRENT_YEAR] Stellar IT Solutions. All rights reserved.</p>
+            <p><a href="https://stellarit.com/">Visit our website</a> | <a href="https://stellarit.com/">Privacy Policy</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
