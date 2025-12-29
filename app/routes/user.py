@@ -99,7 +99,7 @@ class RegisterUser(MethodView):
     @blp.arguments(UserRegisterSchema)
     @blp.response(201, UserResponseSchema)
     @tokenValidation
-    @authorize(["Super Admin", "HR"])
+    @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
     def post(self, user_data):
         """
         Create a new user
