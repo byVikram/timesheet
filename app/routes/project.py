@@ -40,7 +40,7 @@ class GetProjectDetails(MethodView):
 
 	@blp.arguments(ProjectDetailsSchema, location="query")
 	@tokenValidation
-	@authorize(['Super Admin', 'HR'])
+	@authorize(['Super Admin', 'HR', 'Manager'])
 
 	def get(self, projectData):
 		try:
@@ -65,7 +65,7 @@ class CreateProjects(MethodView):
 
 	@blp.arguments(ProjectCreationSchema)
 	@tokenValidation
-	@authorize(['Super Admin', 'HR'])
+	@authorize(['Super Admin', 'HR', 'Manager'])
 
 	def post(self, projectData):
 		try:
@@ -88,7 +88,7 @@ class UpdateProject(MethodView):
 
 	@blp.arguments(ProjectCreationSchema)
 	@tokenValidation
-	@authorize(['Super Admin', 'HR'])
+	@authorize(['Super Admin', 'HR', 'Manager'])
 
 	def put(self, projectData):
 		try:

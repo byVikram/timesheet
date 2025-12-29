@@ -1,6 +1,7 @@
 
 from flask.views import MethodView
 from flask_smorest import Blueprint
+from app.constants.lookups import ROLES
 from app.schemas.project_schema import GetTasksSchema, ProjectCreationSchema, TaskCreationSchema
 from app.schemas.report_schema import ProjectReportSchema
 from app.services.project_service import createProject, createTask, getProjects, getTasks
@@ -19,7 +20,7 @@ class GetUserList(MethodView):
 	@blp.arguments(ProjectReportSchema)
 
 	@tokenValidation
-	@authorize(['Super Admin', 'HR'])
+	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
 
 	def post(self, args):
 		try:

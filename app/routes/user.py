@@ -125,7 +125,7 @@ class GetUserList(MethodView):
 
     @blp.arguments(GetUsersSchema)
     @tokenValidation
-    @authorize(["Super Admin", "HR", "Manager"])
+    @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
     def post(self, requestObj):
 
         try:
@@ -149,7 +149,7 @@ class GetUserDetails(MethodView):
 
     @blp.arguments(GetUserDetailsSchema)
     @tokenValidation
-    @authorize(["Super Admin", "HR", "Manager"])
+    @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
     def post(self, requestObj):
 
         try:
@@ -173,7 +173,7 @@ class GetUserProjects(MethodView):
     @blp.arguments(UserCodeSchema, location="query")
     @blp.doc(description="Retrieve the list of projects assigned to a specific user")
     @tokenValidation
-    @authorize(["Super Admin", "HR", "Manager", "Employee"])
+    @authorize(['ALL'])
     def get(self, userData):
 
         try:
@@ -198,7 +198,7 @@ class AssignProject(MethodView):
     @blp.arguments(AssignProjectSchema)
     @blp.doc(description="Retrieve the list of projects assigned to a specific user")
     @tokenValidation
-    @authorize(["Super Admin", "HR", "Manager"])
+    @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
     def post(self, projectData):
 
         try:
@@ -221,7 +221,7 @@ class Lookup(MethodView):
 
     @blp.doc(description="Lookup data for users")
     @tokenValidation
-    @authorize(["Super Admin", "HR", "Manager", "Employee"])
+    @authorize(['ALL'])
     def get(self):
 
         try:
