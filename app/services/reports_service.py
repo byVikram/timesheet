@@ -1,6 +1,7 @@
 from sqlalchemy import func
+from app.constants.lookups import TIMESHEET_STATUS
 from app.models import Project, User, Task
-from app.models.timesheets import Timesheet, TimesheetEntry
+from app.models.timesheets import Timesheet, TimesheetEntry, TimesheetStatus
 from app.extensions import db
 from app.models.users import UserProject
 
@@ -22,10 +23,11 @@ def getProjectReports(orgId, userCodes):
                 func.sum(TimesheetEntry.hours).label("total_hours"),
             )
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
+            .join(TimesheetStatus, TimesheetEntry.status == TimesheetStatus.id)
             .join(Task, Task.id == TimesheetEntry.task_id)
             .join(UserProject, UserProject.project_id == Project.id)
             .join(User, UserProject.user_id == User.id)
-            .filter(Project.org_id == orgId, User.code.in_(userCodes))
+            .filter(Project.org_id == orgId, User.code.in_(userCodes), TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"])
             .group_by(Project.id, Project.name)
             .all()
         )
@@ -48,10 +50,11 @@ def getProjectReports(orgId, userCodes):
                 func.sum(TimesheetEntry.hours).label("total_hours"),
             )
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
+            .join(TimesheetStatus, TimesheetEntry.status == TimesheetStatus.id)
             .join(Task, Task.id == TimesheetEntry.task_id)
             .join(UserProject, UserProject.project_id == Project.id)
             .join(User, UserProject.user_id == User.id)
-            .filter(Project.org_id == orgId, User.code.in_(userCodes))
+            .filter(Project.org_id == orgId, User.code.in_(userCodes), TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"])
             .group_by(Project.name, Task.name, Task.code)
             .all()
         )
@@ -89,9 +92,10 @@ def getProjectReports(orgId, userCodes):
             )
             .select_from(Project)
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
+            .join(TimesheetStatus, TimesheetEntry.status == TimesheetStatus.id)
             .join(Timesheet, Timesheet.id == TimesheetEntry.timesheet_id)
             .join(User, User.id == Timesheet.user_id)
-            .filter(Project.org_id == orgId, User.code.in_(userCodes))
+            .filter(Project.org_id == orgId, User.code.in_(userCodes), TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"])
             .group_by(User.full_name, User.id)
             .all()
         )

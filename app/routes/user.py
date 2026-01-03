@@ -2,7 +2,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint
 from app.constants.lookups import ROLES
 from app.schemas.user_schema import (
-    AssignProjectSchema,
+    ManageUserProjectSchema,
     GetUserDetailsSchema,
     GetUsersSchema,
     ResetPasswordSchema,
@@ -12,13 +12,13 @@ from app.schemas.user_schema import (
     UserResponseSchema,
 )
 from app.services.user_service import (
-    assignProject,
     createUser,
     getUserDetails,
     getUserProjects,
     getUserRoles,
     getUsers,
     lookup,
+    manageUserProject,
     resetUserPassword,
     userLogin,
 )
@@ -143,7 +143,7 @@ class GetUserList(MethodView):
 
         except Exception as e:
             return getErrorMessage(str(e)), 500
-        
+
 @blp.route("/details")
 class GetUserDetails(MethodView):
 
@@ -192,23 +192,23 @@ class GetUserProjects(MethodView):
             return getErrorMessage(str(e)), 500
 
 
-@blp.route("/assign-project")
-class AssignProject(MethodView):
+@blp.route("/manage-user-project")
+class ManageUserProject(MethodView):
 
-    @blp.arguments(AssignProjectSchema)
-    @blp.doc(description="Retrieve the list of projects assigned to a specific user")
+    @blp.arguments(ManageUserProjectSchema)
+    @blp.doc(description="Manage Project user Relationship")
     @tokenValidation
     @authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
     def post(self, projectData):
 
         try:
-            userProject, error = assignProject(self.userId, projectData)
+            userProject, error = manageUserProject(self.userId, projectData)
 
             if error:
                 return getErrorMessage(error), 400
 
             return getSuccessMessage(
-                "Project assigned successfully",
+                "Project user updated successfully",
                 userProject,
             )
 

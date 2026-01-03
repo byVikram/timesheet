@@ -22,6 +22,8 @@ class UserLoginSchema(Schema):
 class GetUsersSchema(Schema):
     page=fields.Integer(load_default=1)
     per_page=fields.Integer(load_default=10)
+    sort_by=fields.Str()
+    sort_direction=fields.Str()
     variant=fields.Str()
 
 
@@ -38,6 +40,8 @@ class UserResponseSchema(Schema):
     email = fields.Email()
     full_name = fields.Str()
 
-class AssignProjectSchema(Schema):
+class ManageUserProjectSchema(Schema):
     user_code = fields.Str(required=True)
     project_code = fields.Str(required=True)
+    action = fields.Str(required=True)
+    is_active=fields.Bool()
