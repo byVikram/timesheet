@@ -41,7 +41,8 @@ class UserResponseSchema(Schema):
     full_name = fields.Str()
 
 class ManageUserProjectSchema(Schema):
-    user_code = fields.Str(required=True)
+    # user_code = fields.Str(required=True)
+    user_code = fields.List(fields.Str(), required=True)
     project_code = fields.Str(required=True)
     action = fields.Str(required=True)
     is_active=fields.Bool()

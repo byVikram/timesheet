@@ -483,52 +483,118 @@ def getUserProjects(userCode):
         return None, str(e)
 
 
+# def manageUserProject(authorUserId, projectData):
+#     """
+#     Assign a project to a user.
+#     Prevents duplicate assignments.
+#     Logs who created/updated the assignment.
+#     """
+
+#     try:
+
+#         userId, error2 = getIdFromCode(User, projectData["user_code"])
+#         projectId, error3 = getIdFromCode(Project, projectData["project_code"])
+
+#         if error2 or error3:
+#             return None, error2 or error3
+
+#         if projectData["action"]=="assign":
+
+#             if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
+#                 return None, "User exist in the project."
+
+#             userProject = UserProject(
+#                 user_id=userId,
+#                 project_id=projectId,
+#                 created_by=authorUserId,
+#                 updated_by=authorUserId,
+#             )
+#             db.session.add(userProject)
+#             db.session.commit()
+
+#             if not userProject.id:
+#                 return None, "Project creation failed"
+
+#             return True, None
+
+#         if projectData["action"]=="status_change":
+#             userProject = UserProject.query.filter_by(user_id=userId, project_id=projectId).first()
+
+#             if not userProject:
+#                 return None, "Project not exist"
+
+#             userProject.is_active=projectData["is_active"]
+#             userProject.updated_by=authorUserId
+
+#             db.session.commit()
+
+#             return "Project updated successfully", None
+
+#     except Exception as e:
+#         db.session.rollback()
+#         return None, str(e)
+
+
 def manageUserProject(authorUserId, projectData):
     """
-    Assign a project to a user.
+    Assign or update a project for one or multiple users.
     Prevents duplicate assignments.
     Logs who created/updated the assignment.
     """
 
     try:
+        projectId, projectError = getIdFromCode(Project, projectData["project_code"])
+        if projectError:
+            return None, projectError
 
-        userId, error2 = getIdFromCode(User, projectData["user_code"])
-        projectId, error3 = getIdFromCode(Project, projectData["project_code"])
+        results = []
+        errors = []
 
-        if error2 or error3:
-            return None, error2 or error3
+        for user_code in projectData["user_code"]:  # loop over array
+            userId, userError = getIdFromCode(User, user_code)
+            if userError:
+                errors.append({user_code: userError})
+                continue
 
-        if projectData["action"]=="assign":
+            if projectData["action"] == "assign":
+                # Prevent duplicate assignment
+                if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
+                    errors.append({user_code: "User already exists in the project."})
+                    continue
 
-            if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
-                return None, "User exist in the project."
+                userProject = UserProject(
+                    user_id=userId,
+                    project_id=projectId,
+                    created_by=authorUserId,
+                    updated_by=authorUserId,
+                )
+                db.session.add(userProject)
+                db.session.commit()
 
-            userProject = UserProject(
-                user_id=userId,
-                project_id=projectId,
-                created_by=authorUserId,
-                updated_by=authorUserId,
-            )
-            db.session.add(userProject)
-            db.session.commit()
+                if not userProject.id:
+                    errors.append({user_code: "Project creation failed"})
+                    continue
 
-            if not userProject.id:
-                return None, "Project creation failed"
+                results.append({user_code: "Assigned successfully"})
 
-            return True, None
+            elif projectData["action"] == "status_change":
+                userProject = UserProject.query.filter_by(user_id=userId, project_id=projectId).first()
+                if not userProject:
+                    errors.append({user_code: "Project not exists"})
+                    continue
 
-        if projectData["action"]=="status_change":
-            userProject = UserProject.query.filter_by(user_id=userId, project_id=projectId).first()
+                userProject.is_active = projectData["is_active"]
+                userProject.updated_by = authorUserId
+                db.session.commit()
 
-            if not userProject:
-                return None, "Project not exist"
+                results.append({user_code: "Project updated successfully"})
 
-            userProject.is_active=projectData["is_active"]
-            userProject.updated_by=authorUserId
+            else:
+                errors.append({user_code: f"Unknown action {projectData['action']}"})
 
-            db.session.commit()
-
-            return "Project updated successfully", None
+        if errors and not results:
+            return None, errors
+        return results, errors or None
 
     except Exception as e:
         db.session.rollback()
