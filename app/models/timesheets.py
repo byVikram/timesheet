@@ -6,6 +6,12 @@ from sqlalchemy import JSON, func
 
 # from sqlalchemy import JSON
 from app.extensions import db
+import enum
+
+class HolidayType(enum.Enum):
+    PUBLIC = "public"
+    FLOATER = "floater"
+
 
 class Holiday(db.Model):
     __tablename__ = 'holidays'
@@ -20,6 +26,12 @@ class Holiday(db.Model):
     name = db.Column(db.String(200), nullable=False)
     date = db.Column(db.Date, nullable=False)
     description = db.Column(db.Text)
+
+    type = db.Column(
+        db.Enum(HolidayType, name="holiday_type_enum"),
+        nullable=False,
+        default=HolidayType.PUBLIC
+    )
 
 
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)

@@ -2,10 +2,13 @@
 from marshmallow import Schema, fields, validate
 
 
+class HolidayListSchema(Schema):
+    year = fields.Str(required=True)
+
 class HolidayCreationSchema(Schema):
     name = fields.Str(required=True, validate=validate.Length(min=3, max=50))
     date = fields.Date(required=True)
-    description = fields.Str(required=False, validate=validate.Length(min=6))
+    description = fields.Str(required=False, validate=validate.Length(min=3))
 
 
 class SearchTimesheetSchema(Schema):

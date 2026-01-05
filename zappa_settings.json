@@ -10,9 +10,9 @@
             "s3transfer",
             "concurrent"
         ],
-        "profile_name": "stellarTimesheet",
+        "profile_name": "timesheetDev",
         "project_name": "timesheet",
         "runtime": "python3.12",
-        "s3_bucket": "zappa-timesheet-dev"
+        "s3_bucket": "flask-timesheet-dev"
     }
 }

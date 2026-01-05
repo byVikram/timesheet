@@ -6,6 +6,7 @@ from app.schemas.timesheet_schema import (
 	DeleteTimesheetEntrySchema,
 	GetTimesheetSchema,
 	HolidayCreationSchema,
+	HolidayListSchema,
 	ReviewTimesheetSchema,
 	SearchTimesheetSchema,
 	UpdateTimesheetsSchema,
@@ -39,13 +40,14 @@ blp = Blueprint(
 @blp.route("/holiday/search")
 class GetHolidayList(MethodView):
 	@blp.doc(description="Retrieve the list of all Holidays organization specific")
+	@blp.arguments(HolidayListSchema, location='query')
 	@tokenValidation
 	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"]])
-	def get(self):
+	def get(self, requestObj):
 
 		try:
 
-			holidays, error = getHolidays(self.orgId)
+			holidays, error = getHolidays(self.orgId, requestObj['year'])
 
 			if error:
 				return getErrorMessage(error), 400
