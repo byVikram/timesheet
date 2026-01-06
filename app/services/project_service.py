@@ -180,6 +180,7 @@ def updateProject(orgId, projectData):
         project.end_date = projectData.get("end_date")
         project.active = projectData.get("active", True)
         project.manager_id = mangerId
+        project.active = projectData.get("active", True)
 
         db.session.commit()
 

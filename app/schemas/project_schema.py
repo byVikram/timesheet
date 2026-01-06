@@ -12,6 +12,7 @@ class ProjectCreationSchema(Schema):
     manager_code = fields.Str()
 
     project_code=fields.Str()
+    active=fields.Bool()
 
 class TaskCreationSchema(Schema):
     project_code = fields.Str(required=True)
