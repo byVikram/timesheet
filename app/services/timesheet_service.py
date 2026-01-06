@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy import Case, desc, extract, func
-from app.constants.lookups import TIMESHEET_STATUS
+from app.constants.lookups import ROLES, TIMESHEET_STATUS
 from app.models import Holiday, TimesheetStatus, Timesheet
 from app.models.projects import Project, Task
 from app.models.timesheets import TimesheetEntry, TimesheetHistory
@@ -181,16 +181,14 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
             )
         )
 
-        print(role, "role")
 
-        if role == "HR":
+        if role == ROLES["HR"]:
             query = query.filter(User.org_id == orgId)
 
-        if role == "Manager":
-            print("Manager")
+        if role == ROLES["MANAGER"]:
             query = query.filter(Project.manager_id == userId)
 
-        elif role == "Employee":
+        elif role == ROLES["EMPLOYEE"]:
             query = query.filter(User.id == userId)
 
         if timesheetData.get("timesheet_status"):
@@ -199,11 +197,9 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
             )
 
         if timesheetData.get("search") and timesheetData["search"] != "":
-            print("Search")
             query = query.filter(User.full_name.ilike(f"%{timesheetData['search']}%"))
 
         if timesheetData.get("user_code"):
-            print("user_code")
             query = query.filter(User.code == timesheetData["user_code"])
 
         sort_columns = {
@@ -228,8 +224,6 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
                 query = query.order_by(column.desc())
             else:
                 query = query.order_by(column.asc())
-
-        print(query, "query")
 
         allTimesheets, meta = paginateQuery(query, page, per_page)
         timesheetList = []
@@ -284,7 +278,7 @@ def createHoliday(orgId, userId, holidayData):
         return None, str(e)
 
 
-def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
+def getTimesheetByCode(userId, orgId, timesheet_code, userRole, action):
     """
     Fetch a timesheet by code and return all its entries along with history, project, task, etc.
     """
@@ -337,16 +331,12 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
     historyList = []
 
     for entry in timesheet.entries:
-        print(entry, "entry")
 
-        if userRole == "Manager":
-
-            print(entry.project.manager_id, userId, "entry.project.manager_id")
+        if userRole == ROLES["MANAGER"] and action == "review":
             if entry.project.manager_id != userId:
                 continue
 
         for history in entry.history:
-            print(history, "history")
             new_status = history.new_status_obj.name if history.new_status_obj else None
 
             if new_status == TIMESHEET_STATUS["CANCEL"]:
@@ -394,15 +384,15 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole):
                 "status": entry.status_obj.name if entry.status_obj else None,
                 "comment": None,
                 "can_delete": (
-                    userRole == "Employee" and entry.status == TIMESHEET_STATUS["DRAFT"]
+                    (userRole == "Employee" or (userRole == ROLES["MANAGER"] and action == "view") or (userRole == ROLES["SUPER_ADMIN"] and action == "view")) and entry.status == TIMESHEET_STATUS["DRAFT"]
                 ),
                 "can_approve": (
-                    userRole == "Manager"
+                    userRole == ROLES["MANAGER"]
                     and entry.project.manager_id == userId
                     and entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
                 ),
                 "can_reject": (
-                    userRole == "Manager"
+                    userRole == ROLES["MANAGER"]
                     and entry.project.manager_id == userId
                     and entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
                 ),
@@ -458,7 +448,7 @@ def createTimesheetEntry(userId, orgId, timesheetEntryData):
         ).first()
 
         if existing_entry:
-            return "Entry exist for project and period", None
+            return None, "Entry exist for project and period"
 
         # Fetch user organization for holidays
         # user = timesheet.user
@@ -824,8 +814,6 @@ def reviewTimesheet(userId, timesheetData):
                 return None, "Invalid timesheet_entry_code"
 
         if action == "submit":
-            print("here")
-            print(timesheet.status)
             if timesheet.status == TIMESHEET_STATUS["DRAFT"]:
                 timesheet.status = TIMESHEET_STATUS["PENDING_APPROVAL"]
 
@@ -844,7 +832,6 @@ def reviewTimesheet(userId, timesheetData):
 
                 return "Timesheet submitted successfully", None
 
-            print("returning")
             return None, "Timesheet not able to submit"
 
         if action == "cancel":
@@ -896,7 +883,11 @@ def reviewTimesheet(userId, timesheetData):
         else:
             # Need to reject Timesheet entry not the timesheet and make timsheet status to partial reject
             timesheetEntry.status = TIMESHEET_STATUS["REJECTED"]
-            timesheet.status = TIMESHEET_STATUS["PARTIAL_REJECT"]
+            timesheet.status = (
+                TIMESHEET_STATUS["REJECTED"]
+                if canApproveTimesheet
+                else TIMESHEET_STATUS["PARTIAL_REJECT"]
+            )
 
         timesheetEntry.approver_id = userId
         # timesheet.review_comment = timesheetData.get("comment")  # optional
@@ -910,10 +901,8 @@ def reviewTimesheet(userId, timesheetData):
             comment=timesheetData.get("comment"),
         )
         db.session.add(history)
-
         db.session.commit()
 
-        print(action, "action")
 
         return f"Timesheet {action}d successfully", None
 

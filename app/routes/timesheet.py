@@ -159,7 +159,7 @@ class GetTimesheet(MethodView):
 				else None
 			)
 			timesheet, error = getTimesheetByCode(
-				self.userId, self.orgId, timesheetCode, self.userRole
+				self.userId, self.orgId, timesheetCode, self.userRole, timesheetData['action']
 			)
 
 			if error:

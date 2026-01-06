@@ -29,6 +29,7 @@ class SearchTimesheetSchema(Schema):
 
 class GetTimesheetSchema(Schema):
     timesheet_code = fields.Str()
+    action = fields.Str()
 
 
 class CreateTimesheetEntrySchema(Schema):
