@@ -130,7 +130,7 @@ class GetUserList(MethodView):
 
         try:
             usersData, error = getUsers(
-                requestObj.get("variant", "all"), page=requestObj["page"], per_page=requestObj["per_page"]
+                requestObj.get("variant", "all"), search = requestObj.get("search", ""), page=requestObj["page"], per_page=requestObj["per_page"]
             )
 
             if error:

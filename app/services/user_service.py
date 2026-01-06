@@ -1,4 +1,5 @@
 
+from sqlalchemy import or_
 from app.constants.lookups import DB_ROLE_ID, EMAIL_SUBJECTS
 from app.extensions import db
 from app.models import User, UserRole, Project, UserProject
@@ -226,7 +227,7 @@ def resetUserPassword(userData):
         return None, str(e)
 
 
-def getUsers(variant, page=1, per_page=10):
+def getUsers(variant, search="", page=1, per_page=10):
     """
     Retrieve a paginated list of users.
     Includes metadata: page, per_page, total, total_pages.
@@ -249,6 +250,15 @@ def getUsers(variant, page=1, per_page=10):
             .outerjoin(UserRole, User.role_id == UserRole.id)
             # .order_by(User.created_at.desc())
         )
+
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(search_term),
+                    User.email.ilike(search_term),
+                )
+            )
 
         if variant == "paginated":
 

@@ -25,6 +25,7 @@ class GetUsersSchema(Schema):
     sort_by=fields.Str()
     sort_direction=fields.Str()
     variant=fields.Str()
+    search=fields.Str()
 
 
 class GetUserDetailsSchema(Schema):
