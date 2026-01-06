@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import distinct, func
 from app.constants.lookups import TIMESHEET_STATUS
 from app.models import Project, User, Task
 from app.models.timesheets import Timesheet, TimesheetEntry, TimesheetStatus
@@ -15,26 +15,45 @@ def getProjectReports(orgId, userCodes):
     """
     try:
         # ----- Project-level summary -----
+
+        user_exists = (
+            db.session.query(UserProject.id)
+            .join(User, User.id == UserProject.user_id)
+            .filter(
+                UserProject.project_id == Project.id,
+                User.code.in_(userCodes)
+            )
+            .exists()
+        )
+
+
         project_summary = (
             db.session.query(
                 Project.id.label("project_id"),
                 Project.name.label("project_name"),
-                func.count(Task.id).label("num_tasks"),
+                func.count(distinct(Task.id)).label("num_tasks"),
                 func.sum(TimesheetEntry.hours).label("total_hours"),
             )
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
             .join(TimesheetStatus, TimesheetEntry.status == TimesheetStatus.id)
             .join(Task, Task.id == TimesheetEntry.task_id)
-            .join(UserProject, UserProject.project_id == Project.id)
-            .join(User, UserProject.user_id == User.id)
             .filter(
                 Project.org_id == orgId,
-                User.code.in_(userCodes),
+                user_exists,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
             )
             .group_by(Project.id, Project.name)
-            .all()
         )
+
+        print(
+            project_summary.statement.compile(
+                dialect=db.engine.dialect,
+                compile_kwargs={"literal_binds": True}
+            )
+        )
+
+        project_summary = project_summary.all()
+
 
         project_summary_list = [
             {
@@ -56,11 +75,12 @@ def getProjectReports(orgId, userCodes):
             .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
             .join(TimesheetStatus, TimesheetEntry.status == TimesheetStatus.id)
             .join(Task, Task.id == TimesheetEntry.task_id)
-            .join(UserProject, UserProject.project_id == Project.id)
-            .join(User, UserProject.user_id == User.id)
+            # .join(UserProject, UserProject.project_id == Project.id)
+            # .join(User, UserProject.user_id == User.id)
             .filter(
                 Project.org_id == orgId,
-                User.code.in_(userCodes),
+                # User.code.in_(userCodes),
+                user_exists,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
             )
             .group_by(Project.name, Task.name, Task.code)
