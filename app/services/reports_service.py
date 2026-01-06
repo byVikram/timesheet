@@ -27,7 +27,11 @@ def getProjectReports(orgId, userCodes):
             .join(Task, Task.id == TimesheetEntry.task_id)
             .join(UserProject, UserProject.project_id == Project.id)
             .join(User, UserProject.user_id == User.id)
-            .filter(Project.org_id == orgId, User.code.in_(userCodes), TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"])
+            .filter(
+                Project.org_id == orgId,
+                User.code.in_(userCodes),
+                # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
+            )
             .group_by(Project.id, Project.name)
             .all()
         )
@@ -54,7 +58,11 @@ def getProjectReports(orgId, userCodes):
             .join(Task, Task.id == TimesheetEntry.task_id)
             .join(UserProject, UserProject.project_id == Project.id)
             .join(User, UserProject.user_id == User.id)
-            .filter(Project.org_id == orgId, User.code.in_(userCodes), TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"])
+            .filter(
+                Project.org_id == orgId,
+                User.code.in_(userCodes),
+                # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
+            )
             .group_by(Project.name, Task.name, Task.code)
             .all()
         )
@@ -95,7 +103,11 @@ def getProjectReports(orgId, userCodes):
             .join(TimesheetStatus, TimesheetEntry.status == TimesheetStatus.id)
             .join(Timesheet, Timesheet.id == TimesheetEntry.timesheet_id)
             .join(User, User.id == Timesheet.user_id)
-            .filter(Project.org_id == orgId, User.code.in_(userCodes), TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"])
+            .filter(
+                Project.org_id == orgId,
+                User.code.in_(userCodes),
+                # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"],
+            )
             .group_by(User.full_name, User.id)
             .all()
         )
