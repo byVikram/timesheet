@@ -3,3 +3,4 @@
 from .users import *  # noqa: F403
 from .timesheets import *  # noqa: F403
 from .projects import *  # noqa: F403
+from .subscription import *  # noqa: F403

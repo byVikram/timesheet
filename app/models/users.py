@@ -65,6 +65,9 @@ class User(db.Model):
     changed_timesheets = db.relationship('TimesheetHistory', back_populates='changed_by_user', lazy=True)
     manager = db.relationship('User', remote_side=[id], backref='subordinates', lazy=True)
 
+    subscriptions = db.relationship("PushSubscription", back_populates="user", lazy=True)
+
+
     manager_projects = db.relationship('Project', back_populates='manager_user', foreign_keys='Project.manager_id', lazy=True)
     created_projects = db.relationship('Project', back_populates='created_by_user', foreign_keys='Project.created_by', lazy=True)
     updated_projects = db.relationship('Project', back_populates='updated_by_user', foreign_keys='Project.updated_by', lazy=True)
