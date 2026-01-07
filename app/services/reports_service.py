@@ -1,9 +1,9 @@
+from datetime import datetime, timedelta
 from sqlalchemy import distinct, func
 from app.constants.lookups import TIMESHEET_STATUS
 from app.models import Project, User, Task
 from app.models.timesheets import Timesheet, TimesheetEntry, TimesheetStatus
 from app.extensions import db
-from app.models.users import UserProject
 
 
 def getProjectReports(orgId, userCodes):
@@ -90,7 +90,7 @@ def getProjectReports(orgId, userCodes):
                 project_dict[task] = float(t.total_hours) if t else 0
             task_summary_list.append(project_dict)
 
-            # ----- Employee-level summary -----
+        # ----- Employee-level summary -----
         employee_summary = (
             db.session.query(
                 # Project.name.label("project_name"),
@@ -114,36 +114,11 @@ def getProjectReports(orgId, userCodes):
 
         employee_summary_list = [
             {
-                # "project_name": e.project_name,
                 "user_full_name": e.user_full_name,
                 "total_hours": float(e.total_hours),
             }
             for e in employee_summary
         ]
-
-        # ----- Weekly trend summary -----
-        # weekly_summary = (
-        #     db.session.query(
-        #         Project.name.label("project_name"),
-        #         func.date_format(Timesheet.week_start, "%Y-%u").label("week"),  # Year-Week
-        #         func.sum(TimesheetEntry.hours).label("total_hours")
-        #     )
-        #     .join(TimesheetEntry, TimesheetEntry.project_id == Project.id)
-        #     .join(Timesheet, Timesheet.id == TimesheetEntry.timesheet_id)
-        #     .filter(Project.org_id == orgId)
-        #     .group_by(Project.name, func.date_format(Timesheet.week_start, "%Y-%u"))
-        #     .order_by(Project.name, "week")
-        #     .all()
-        # )
-
-        # weekly_summary_list = [
-        #     {
-        #         "project_name": w.project_name,
-        #         "week": w.week,
-        #         "total_hours": float(w.total_hours),
-        #     }
-        #     for w in weekly_summary
-        # ]
 
         # Combine all reports into one dictionary
         reports = {
@@ -154,6 +129,49 @@ def getProjectReports(orgId, userCodes):
         }
 
         return reports, None
+
+    except Exception as e:
+        return None, str(e)
+
+def getTimesheetReports(weeks_ago):
+    try:
+        end_date = datetime.now()
+        start_date = end_date - timedelta(weeks=weeks_ago)
+
+        weekly_data = (
+            db.session.query(
+                Timesheet.week_start.label("week"),
+                TimesheetStatus.name.label("status"),
+                func.count(Timesheet.id).label("count"),
+                func.coalesce(func.sum(TimesheetEntry.hours), 0).label("total_hours"),
+            )
+            .join(TimesheetStatus, Timesheet.status == TimesheetStatus.id)
+            .outerjoin(TimesheetEntry, Timesheet.id == TimesheetEntry.timesheet_id)
+            .filter(Timesheet.week_start >= start_date.date())
+            .group_by(Timesheet.week_start, TimesheetStatus.name)
+            .order_by(Timesheet.week_start.desc(), TimesheetStatus.name)
+            .all()
+        )
+
+        weeks = {}
+        for row in weekly_data:
+            week_key = row.week.isoformat()
+
+            if week_key not in weeks:
+                weeks[week_key] = {
+                    "week_start": week_key,
+                    "statuses": {},
+                    "total_timesheets": 0,
+                }
+
+            weeks[week_key]["statuses"][row.status] = {
+                "count": row.count,
+                "hours": float(row.total_hours),
+            }
+
+            weeks[week_key]["total_timesheets"] += row.count
+
+        return list(weeks.values()), None
 
     except Exception as e:
         return None, str(e)

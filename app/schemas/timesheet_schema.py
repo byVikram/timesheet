@@ -14,11 +14,11 @@ class HolidayCreationSchema(Schema):
 class SearchTimesheetSchema(Schema):
     page = fields.Integer()
     per_page = fields.Integer()
-    timesheet_status = fields.Str()
     sort_by = fields.Str()
     sort_direction = fields.Str()
     search = fields.Str()
     user_code = fields.Str()
+    timesheet_status =fields.List(fields.Str())
 
 
 # class GetTimesheetSchema(Schema):

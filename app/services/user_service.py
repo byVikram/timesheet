@@ -627,8 +627,8 @@ def lookup():
         for ts in timesheetStatus:
             timesheetStatusList.append(
                 {
-                    "code": ts.code,
-                    "name": ts.name,
+                    "value": ts.code,
+                    "label": ts.name,
                 }
             )
 

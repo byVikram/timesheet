@@ -33,12 +33,6 @@ def create_app():
         f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
         f"@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
     )
-    print("DB_HOST", os.getenv('DB_HOST'))
-    print("DB_NAME", os.getenv('DB_NAME'))
-    print("DB_PASSWORD", os.getenv('DB_PASSWORD'))
-
-    print("SECRET_KEY", os.getenv('SECRET_KEY'))
-
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False') == 'True'
 
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')

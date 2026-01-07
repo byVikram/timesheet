@@ -1,3 +1,6 @@
+import base64
+import io
+from flask import send_file
 from flask.views import MethodView
 from flask_smorest import Blueprint
 from app.constants.lookups import ROLES
@@ -16,6 +19,7 @@ from app.services.timesheet_service import (
 	createTimesheetEntry,
 	createTimesheetsForAllUsers,
 	deleteTimesheetEntry,
+	downloadTimesheets,
 	getAllTimesheets,
 	getHolidays,
 	getTimesheetByCode,
@@ -40,14 +44,14 @@ blp = Blueprint(
 @blp.route("/holiday/search")
 class GetHolidayList(MethodView):
 	@blp.doc(description="Retrieve the list of all Holidays organization specific")
-	@blp.arguments(HolidayListSchema, location='query')
+	@blp.arguments(HolidayListSchema, location="query")
 	@tokenValidation
 	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"]])
 	def get(self, requestObj):
 
 		try:
 
-			holidays, error = getHolidays(self.orgId, requestObj['year'])
+			holidays, error = getHolidays(self.orgId, requestObj["year"])
 
 			if error:
 				return getErrorMessage(error), 400
@@ -113,6 +117,33 @@ class GetTimesheets(MethodView):
 			return getErrorMessage(str(e)), 500
 
 
+@blp.route("/download")
+class DownloadTimesheets(MethodView):
+	@blp.doc(description="Download the list of all users timesheets")
+	@blp.arguments(SearchTimesheetSchema)
+	@tokenValidation
+	@authorize(["ALL"])
+	def post(self, timesheetData):
+		try:
+
+			output, error = downloadTimesheets(
+				self.orgId, self.userId, self.userRole, timesheetData
+			)
+			
+			encoded = base64.b64encode(output.getvalue()).decode('utf-8')
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				"File created successfully",
+				encoded,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
 @blp.route("/user/search")
 class GetUserTimesheets(MethodView):
 
@@ -159,7 +190,11 @@ class GetTimesheet(MethodView):
 				else None
 			)
 			timesheet, error = getTimesheetByCode(
-				self.userId, self.orgId, timesheetCode, self.userRole, timesheetData['action']
+				self.userId,
+				self.orgId,
+				timesheetCode,
+				self.userRole,
+				timesheetData["action"],
 			)
 
 			if error:
@@ -182,7 +217,9 @@ class CreateTimesheetEntry(MethodView):
 	@authorize(["ALL"])
 	def post(self, timesheetEntryData):
 		try:
-			timesheet, error = createTimesheetEntry(self.userId, self.orgId, timesheetEntryData)
+			timesheet, error = createTimesheetEntry(
+				self.userId, self.orgId, timesheetEntryData
+			)
 
 			if error:
 				return getErrorMessage(error), 400
@@ -247,13 +284,13 @@ class ReviewTimesheet(MethodView):
 	@blp.doc(description="Update timesheet status by reviewing it")
 	@blp.arguments(ReviewTimesheetSchema)
 	@tokenValidation
-	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"],  ROLES["EMPLOYEE"]])
+	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"], ROLES["EMPLOYEE"]])
 	def post(self, timesheetData):
 		try:
 			timesheet, error = reviewTimesheet(self.userId, timesheetData)
 
-			print(timesheet,"Timesheet")
-			print(error,"error")
+			print(timesheet, "Timesheet")
+			print(error, "error")
 
 			if error:
 				return getErrorMessage(error), 400
@@ -287,4 +324,3 @@ class DeleteTimesheetEntry(MethodView):
 
 		except Exception as e:
 			return getErrorMessage(str(e)), 500
-

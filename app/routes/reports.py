@@ -2,10 +2,8 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint
 from app.constants.lookups import ROLES
-from app.schemas.project_schema import GetTasksSchema, ProjectCreationSchema, TaskCreationSchema
 from app.schemas.report_schema import ProjectReportSchema
-from app.services.project_service import createProject, createTask, getProjects, getTasks
-from app.services.reports_service import getProjectReports
+from app.services.reports_service import getProjectReports, getTimesheetReports
 from app.utils.helpers import authorize, getErrorMessage, getSuccessMessage, tokenValidation
 
 blp = Blueprint(
@@ -16,7 +14,7 @@ blp = Blueprint(
 
 
 @blp.route("/projects")
-class GetUserList(MethodView):
+class ProjectReport(MethodView):
 	@blp.arguments(ProjectReportSchema)
 
 	@tokenValidation
@@ -33,6 +31,29 @@ class GetUserList(MethodView):
 			return getSuccessMessage(
 				"Project reports fetched successfully",
 				projects,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
+@blp.route("/timesheet")
+class TimesheetReport(MethodView):
+
+	@tokenValidation
+	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
+
+	def post(self):
+		try:
+
+			timesheetsReport, error = getTimesheetReports(1)
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				"Timesheet reports fetched successfully",
+				timesheetsReport,
 			)
 
 		except Exception as e:

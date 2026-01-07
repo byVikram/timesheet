@@ -1,4 +1,9 @@
 from datetime import datetime, timedelta
+
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+
 from sqlalchemy import Case, desc, extract, func
 from app.constants.lookups import ROLES, TIMESHEET_STATUS
 from app.models import Holiday, TimesheetStatus, Timesheet
@@ -123,7 +128,7 @@ def getUserTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
         return None, str(e)
 
 
-def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
+def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, download=False):
     """
     Fetch paginated timesheet records with filtering based on role and input data.
 
@@ -191,10 +196,10 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
         elif role == ROLES["EMPLOYEE"]:
             query = query.filter(User.id == userId)
 
-        if timesheetData.get("timesheet_status"):
-            query = query.filter(
-                TimesheetStatus.code == timesheetData["timesheet_status"]
-            )
+        # if timesheetData.get("timesheet_status"):
+        query = query.filter(
+            TimesheetStatus.code.in_(timesheetData["timesheet_status"])
+        )
 
         if timesheetData.get("search") and timesheetData["search"] != "":
             query = query.filter(User.full_name.ilike(f"%{timesheetData['search']}%"))
@@ -225,6 +230,24 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
             else:
                 query = query.order_by(column.asc())
 
+        if download:
+            allTimesheets = query.all()
+            timesheetList = []
+
+            timesheetList = [
+                {
+                    "total_hours": item.total_hours,
+                    "timesheet_code": item.code,
+                    "user_name": item.user_name,
+                    "week_start": formatDatetime(item.week_start),
+                    "week_end": formatDatetime(item.week_end),
+                    "timesheet_status": item.timesheet_status,
+                }
+                for item in allTimesheets
+            ]
+
+            return {"timesheet": timesheetList}, None
+
         allTimesheets, meta = paginateQuery(query, page, per_page)
         timesheetList = []
 
@@ -244,6 +267,66 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
 
     except Exception as e:
         return None, str(e)
+
+
+
+
+def downloadTimesheets(orgId, userId, role, timesheetData):
+    # Get all timesheets
+    timesheets, error = getAllTimesheets(orgId, userId, role, timesheetData, download=True)
+    if error:
+        return None, error
+
+    # Create a workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Timesheets"
+
+    # Define headers
+    headers = ["User Name", "Timesheet Code", "Week Start", "Week End", "Status", "Total Hours"]
+
+    # Style headers
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    alignment = Alignment(horizontal="center", vertical="center")
+
+    # Write headers
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+
+    # Write timesheet rows
+    for row_num, ts in enumerate(timesheets["timesheet"], 2):
+        ws.cell(row=row_num, column=1, value=ts["user_name"])
+        ws.cell(row=row_num, column=2, value=ts["timesheet_code"])
+        ws.cell(row=row_num, column=3, value=ts["week_start"])
+        ws.cell(row=row_num, column=4, value=ts["week_end"])
+        ws.cell(row=row_num, column=5, value=ts["timesheet_status"])
+        ws.cell(row=row_num, column=6, value=ts["total_hours"])
+
+    # Auto-adjust column widths
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter  # Get column name
+        for cell in col:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except:
+                pass
+        adjusted_width = max_length + 2
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Save to BytesIO to return as a file-like object
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return output, None
+
+
 
 
 def createHoliday(orgId, userId, holidayData):
