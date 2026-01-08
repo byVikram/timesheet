@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 
 import io
 from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+
 
 from sqlalchemy import Case, desc, extract, func
 from app.constants.lookups import ROLES, TIMESHEET_STATUS
@@ -145,7 +146,6 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
     """
 
     try:
-
         status_priority = {
             "Pending Approval": 0,
             "Partially Approved": 0,
@@ -186,6 +186,13 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
             )
         )
 
+        if timesheetData['start_date']:
+            startDate = timesheetData['start_date'] - timedelta(days=timesheetData['start_date'].weekday())
+            query = query.filter(Timesheet.week_start >= startDate)
+
+        if timesheetData['end_date']:
+            endDate = timesheetData['end_date'] + timedelta(days=6 - timesheetData['end_date'].weekday())
+            query = query.filter(Timesheet.week_end <= endDate)
 
         if role == ROLES["HR"]:
             query = query.filter(User.org_id == orgId)
@@ -239,8 +246,8 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
                     "total_hours": item.total_hours,
                     "timesheet_code": item.code,
                     "user_name": item.user_name,
-                    "week_start": formatDatetime(item.week_start),
-                    "week_end": formatDatetime(item.week_end),
+                    "week_start": formatDatetime(item.week_start, "%b %d, %Y"),
+                    "week_end": formatDatetime(item.week_end, "%b %d, %Y"),
                     "timesheet_status": item.timesheet_status,
                 }
                 for item in allTimesheets
@@ -256,8 +263,8 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
                 "total_hours": item.total_hours,
                 "timesheet_code": item.code,
                 "user_name": item.user_name,
-                "week_start": formatDatetime(item.week_start),
-                "week_end": formatDatetime(item.week_end),
+                "week_start": formatDatetime(item.week_start, "%b %d, %Y"),
+                "week_end": formatDatetime(item.week_end, "%b %d, %Y"),
                 "timesheet_status": item.timesheet_status,
             }
             for item in allTimesheets
@@ -271,53 +278,202 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
 
 
 
+# def downloadTimesheets(orgId, userId, role, timesheetData):
+#     # Get all timesheets
+#     timesheets, error = getAllTimesheets(orgId, userId, role, timesheetData, download=True)
+#     if error:
+#         return None, error
+
+#     # Create a workbook and sheet
+#     wb = Workbook()
+#     ws = wb.active
+#     ws.title = "Timesheets"
+
+#     # Define headers
+#     headers = ["User Name", "Period", "Status", "Total Hours"]
+
+#     # Style headers
+#     header_font = Font(bold=True, color="FFFFFF")
+#     header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+#     alignment = Alignment(horizontal="center", vertical="center")
+
+#     # Write headers
+#     for col_num, header in enumerate(headers, 1):
+#         cell = ws.cell(row=1, column=col_num, value=header)
+#         cell.font = header_font
+#         cell.fill = header_fill
+#         cell.alignment = alignment
+
+#     # Write timesheet rows
+#     for row_num, ts in enumerate(timesheets["timesheet"], 2):
+#         ws.cell(row=row_num, column=1, value=ts["user_name"])
+#         ws.cell(row=row_num, column=2, value=ts["week_start"] + " - " + ts["week_end"])
+#         ws.cell(row=row_num, column=3, value=ts["timesheet_status"])
+#         ws.cell(row=row_num, column=4, value=ts["total_hours"])
+#     # Auto-adjust column widths
+#     for col in ws.columns:
+#         max_length = 0
+#         column = col[0].column_letter  # Get column name
+#         for cell in col:
+#             try:
+#                 if cell.value:
+#                     max_length = max(max_length, len(str(cell.value)))
+#             except:
+#                 pass
+#         adjusted_width = max_length + 2
+#         ws.column_dimensions[column].width = adjusted_width
+
+#     # Save to BytesIO to return as a file-like object
+#     output = io.BytesIO()
+#     wb.save(output)
+#     output.seek(0)
+
+#     return output, None
+
+
+
 def downloadTimesheets(orgId, userId, role, timesheetData):
     # Get all timesheets
     timesheets, error = getAllTimesheets(orgId, userId, role, timesheetData, download=True)
     if error:
         return None, error
+    
+    if timesheetData['start_date']:
+        startDate = timesheetData['start_date'] - timedelta(days=timesheetData['start_date'].weekday())
+
+    if timesheetData['end_date']:
+        endDate = timesheetData['end_date'] + timedelta(days=6 - timesheetData['end_date'].weekday())
 
     # Create a workbook and sheet
     wb = Workbook()
     ws = wb.active
     ws.title = "Timesheets"
 
+    # Define colors
+    STELLAR_BLUE = "4F81BD"
+    # HEADER_GRAY = "D9D9D9"
+    LIGHT_BLUE = "DAE3F3"
+    BORDER_COLOR = "000000"
+
+    # Create border style
+    thin_border = Border(
+        left=Side(style='thin', color=BORDER_COLOR),
+        right=Side(style='thin', color=BORDER_COLOR),
+        top=Side(style='thin', color=BORDER_COLOR),
+        bottom=Side(style='thin', color=BORDER_COLOR)
+    )
+
+    # Row 1: "Stellar IT" title
+    ws.merge_cells('A1:D1')
+    stellar_cell = ws.cell(row=1, column=1, value="Stellar IT")
+    stellar_cell.font = Font(bold=True, size=16, color="FFFFFF")
+    stellar_cell.fill = PatternFill(start_color=STELLAR_BLUE, end_color=STELLAR_BLUE, fill_type="solid")
+    stellar_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Make row 1 taller
+    ws.row_dimensions[1].height = 30
+
+    # Row 2: Period date (if timesheets exist)
+    header_start_row = 2  # Track where headers will start
+
+    # if timesheets.get("timesheet"):
+
+    period_text = f"Period: {formatDatetime(startDate, '%b %d, %Y')} - {formatDatetime(endDate, '%b %d, %Y')}"
+
+    ws.merge_cells('A2:D2')
+    period_cell = ws.cell(row=2, column=1, value=period_text)
+    period_cell.font = Font(bold=True, size=12)
+    period_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Make row 2 taller
+    ws.row_dimensions[2].height = 25
+    header_start_row = 3
+
     # Define headers
-    headers = ["User Name", "Timesheet Code", "Week Start", "Week End", "Status", "Total Hours"]
+    headers = ["User Name", "Period", "Status", "Total Hours"]
 
     # Style headers
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-    alignment = Alignment(horizontal="center", vertical="center")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color=STELLAR_BLUE, end_color=STELLAR_BLUE, fill_type="solid")
+    alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # Write headers
+    # Write headers with styling
     for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_num, value=header)
+        cell = ws.cell(row=header_start_row, column=col_num, value=header)
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = alignment
+        cell.border = thin_border
 
-    # Write timesheet rows
-    for row_num, ts in enumerate(timesheets["timesheet"], 2):
-        ws.cell(row=row_num, column=1, value=ts["user_name"])
-        ws.cell(row=row_num, column=2, value=ts["timesheet_code"])
-        ws.cell(row=row_num, column=3, value=ts["week_start"])
-        ws.cell(row=row_num, column=4, value=ts["week_end"])
-        ws.cell(row=row_num, column=5, value=ts["timesheet_status"])
-        ws.cell(row=row_num, column=6, value=ts["total_hours"])
+    # Make header row taller
+    ws.row_dimensions[header_start_row].height = 25
 
-    # Auto-adjust column widths
-    for col in ws.columns:
+    # Write timesheet rows with alternating row colors
+    start_row = header_start_row + 1
+    for idx, ts in enumerate(timesheets.get("timesheet", [])):
+        row_num = start_row + idx
+
+        # Alternate row colors
+        if idx % 2 == 0:
+            row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+        else:
+            row_fill = PatternFill(start_color=LIGHT_BLUE, end_color=LIGHT_BLUE, fill_type="solid")
+
+        # Create data cells
+        ws.cell(row=row_num, column=1, value=ts.get("user_name", ""))
+        ws.cell(row=row_num, column=2, value=f"{ts.get('week_start', '')} - {ts.get('week_end', '')}")
+        ws.cell(row=row_num, column=3, value=ts.get("timesheet_status", ""))
+        ws.cell(row=row_num, column=4, value=ts.get("total_hours", ""))
+
+        # Apply styling to all cells in the row
+        for col_num in range(1, 5):
+            cell = ws.cell(row=row_num, column=col_num)
+            cell.border = thin_border
+            cell.fill = row_fill
+
+            # Special alignment for user name (left aligned)
+            if col_num == 1:
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+            else:
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Auto-adjust column widths (FIXED: Handle merged cells properly)
+    for col_idx, col in enumerate(ws.columns, 1):
         max_length = 0
-        column = col[0].column_letter  # Get column name
+        column_letter = None
+
+        # Find the column letter from a non-merged cell
         for cell in col:
             try:
+                # Skip merged cells that are not the top-left cell
+                if cell.coordinate in ws.merged_cells and cell.value is None:
+                    continue
+
                 if cell.value:
                     max_length = max(max_length, len(str(cell.value)))
-            except:
-                pass
-        adjusted_width = max_length + 2
-        ws.column_dimensions[column].width = adjusted_width
+
+                # Get column letter from any cell that's not a MergedCell
+                if not column_letter and hasattr(cell, 'column_letter'):
+                    column_letter = cell.column_letter
+            except Exception as e:
+                continue
+
+        # If we couldn't get column_letter, calculate it from col_idx
+        if not column_letter:
+            column_letter = chr(64 + col_idx) if col_idx <= 26 else 'A'  # Simple fallback
+
+        # Add padding to column width
+        adjusted_width = min(max_length + 4, 50)  # Cap at 50 for very long content
+
+        # Only set width if we found content
+        if max_length > 0:
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Set specific column widths for better readability
+    ws.column_dimensions['A'].width = 25  # User Name
+    ws.column_dimensions['B'].width = 30  # Period
+    ws.column_dimensions['C'].width = 15  # Status
+    ws.column_dimensions['D'].width = 12  # Total Hours
 
     # Save to BytesIO to return as a file-like object
     output = io.BytesIO()
@@ -325,8 +481,6 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
     output.seek(0)
 
     return output, None
-
-
 
 
 def createHoliday(orgId, userId, holidayData):

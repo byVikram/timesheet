@@ -92,13 +92,13 @@ def tokenValidation(func):
 				current_time = datetime.now(timezone.utc)
 
 				if current_time > expiry_time:
-					return {"status": "error", "message": "Your session has timed out. Please log in again."}, 403
+					return {"status": "error", "message": "Your session has timed out. Please log in again."}, 401
 
 			userCode = payload.get('user_code')
 			orgCode = payload.get('org_code')
 
 			if not userCode:
-				return {"status": "error", "message": "Invalid token: user code missing."}, 403
+				return {"status": "error", "message": "Invalid token: user code missing."}, 401
 
 			# Attach userCode to the instance
 			self.userCode = userCode
@@ -109,7 +109,7 @@ def tokenValidation(func):
 
 		except Exception as e:
 			print("Token validation error:", str(e))
-			return {"status": "error", "message": "Your session has timed out. Please log in again."}, 403
+			return {"status": "error", "message": "Your session has timed out. Please log in again."}, 401
 
 	return wrapper
 

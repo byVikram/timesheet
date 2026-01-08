@@ -1,6 +1,4 @@
 import base64
-import io
-from flask import send_file
 from flask.views import MethodView
 from flask_smorest import Blueprint
 from app.constants.lookups import ROLES
@@ -309,7 +307,7 @@ class DeleteTimesheetEntry(MethodView):
 	@blp.doc(description="Delete specific timesheet entry")
 	@blp.arguments(DeleteTimesheetEntrySchema, location="query")
 	@tokenValidation
-	@authorize([ROLES["EMPLOYEE"], ROLES["SUPER_ADMIN"]])
+	@authorize([ROLES["EMPLOYEE"], ROLES["SUPER_ADMIN"], ROLES["MANAGER"], ROLES["HR"]])
 	def delete(self, timesheetEntryData):
 		try:
 			timesheet, error = deleteTimesheetEntry(self.userId, timesheetEntryData)

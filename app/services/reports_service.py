@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 from sqlalchemy import distinct, func
-from app.constants.lookups import TIMESHEET_STATUS
+# from app.constants.lookups import TIMESHEET_STATUS
 from app.models import Project, User, Task
 from app.models.timesheets import Timesheet, TimesheetEntry, TimesheetStatus
 from app.extensions import db
 
 
-def getProjectReports(orgId, userCodes):
+def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
     """
     Retrieve a comprehensive set of reports for a given organization.
 
@@ -15,6 +15,13 @@ def getProjectReports(orgId, userCodes):
     """
     try:
         # ----- Project-level summary -----
+
+        # Start date needs to be weeks first date i.e monday
+        if startDate:
+            startDate = startDate - timedelta(days=startDate.weekday())
+
+        if endDate:
+            endDate = endDate + timedelta(days=6 - endDate.weekday())
 
         project_summary = (
             db.session.query(
@@ -31,6 +38,8 @@ def getProjectReports(orgId, userCodes):
             .filter(
                 Project.org_id == orgId,
                 User.code.in_(userCodes),
+                Timesheet.week_start >= startDate if startDate else True,
+                Timesheet.week_start <= endDate if endDate else True,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
             )
             .group_by(Project.id, Project.name)
@@ -61,6 +70,8 @@ def getProjectReports(orgId, userCodes):
             .filter(
                 Project.org_id == orgId,
                 User.code.in_(userCodes),
+                Timesheet.week_start >= startDate if startDate else True,
+                Timesheet.week_start <= endDate if endDate else True,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
             )
             .group_by(Project.name, Task.name, Task.code)
@@ -106,6 +117,8 @@ def getProjectReports(orgId, userCodes):
             .filter(
                 Project.org_id == orgId,
                 User.code.in_(userCodes),
+                Timesheet.week_start >= startDate if startDate else True,
+                Timesheet.week_start <= endDate if endDate else True,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"],
             )
             .group_by(User.full_name, User.id)

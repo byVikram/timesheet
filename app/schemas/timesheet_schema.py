@@ -19,6 +19,8 @@ class SearchTimesheetSchema(Schema):
     search = fields.Str()
     user_code = fields.Str()
     timesheet_status =fields.List(fields.Str())
+    start_date = fields.Date()
+    end_date = fields.Date()
 
 
 # class GetTimesheetSchema(Schema):
