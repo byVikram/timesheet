@@ -143,7 +143,7 @@ class SendPush(MethodView):
 				PushSubscription.query
 				.join(PushSubscription.user)          # join User
 				.join(User.role)                      # join UserRole
-				.filter(UserRole.name == "Manager")
+				.filter(UserRole.name == "Super Admin")
 				.all()
 			)
 
@@ -155,11 +155,11 @@ class SendPush(MethodView):
 						"endpoint": sub.endpoint,
 						"keys": sub.keys
 					},
-					title="Test Notification",
-					body="This is a test notification"
+					title="Timesheet Reminder",
+					body="Have you updated your timesheet"
 				)
 
-			return getSuccessMessage("Push notifications sent", ""), 200
+			return getSuccessMessage("Push notifications sent", "Have you updated your timesheet"), 200
 
 		except Exception as e:
 			return {"status": "error", "message": str(e), "data": ""}, 500
