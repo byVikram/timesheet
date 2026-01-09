@@ -2,7 +2,7 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint
 
-from app.services.cron_service import sendEmailsToDraftTimesheets
+from app.services.cron_service import sendEmailsToDraftTimesheets, sendSecondReminderToDraftTimesheets
 from app.utils.helpers import getErrorMessage, getSuccessMessage
 
 
@@ -26,7 +26,28 @@ class WeeklyReminder(MethodView):
 
 			return getSuccessMessage(
 				"Emails sent successfully.",
-				"",
+				timesheet,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
+@blp.route("/second-reminder")
+class SecondReminder(MethodView):
+	@blp.doc(description="Send second reminder emails to users with draft timesheets")
+	def get(self):
+		try:
+			print("post request received")
+
+			timesheet, error = sendSecondReminderToDraftTimesheets()
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				"Emails sent successfully.",
+				timesheet,
 			)
 
 		except Exception as e:

@@ -13,6 +13,12 @@ class HolidayType(enum.Enum):
     FLOATER = "floater"
 
 
+class ReminderTypeEnum(enum.Enum):
+    GENTLE = "gentle"
+    SECOND = "second"
+    THIRD = "third"
+
+
 class Holiday(db.Model):
     __tablename__ = 'holidays'
 
@@ -79,6 +85,8 @@ class Timesheet(db.Model):
     status_obj = db.relationship('TimesheetStatus')
     entries = db.relationship('TimesheetEntry', back_populates='timesheet', cascade='all, delete-orphan')
 
+    reminders = db.relationship('TimesheetReminder',  back_populates='timesheet',cascade='all, delete-orphan')
+
     __table_args__ = (
         db.UniqueConstraint('user_id', 'week_start', 'week_end', name='uq_user_week'),
     )
@@ -135,3 +143,14 @@ class TimesheetHistory(db.Model):
     changed_by_user = db.relationship('User', back_populates='changed_timesheets')
 
 
+class TimesheetReminder(db.Model):
+    __tablename__ = 'timesheet_reminders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    timesheet_id = db.Column(db.Integer, db.ForeignKey('timesheets.id'), nullable=False)
+
+    # reminder_type = db.Column(db.String(20), nullable=False) # examples: 'gentle', 'important', 'final'
+    reminder_type = db.Column(db.Enum(ReminderTypeEnum, name="reminder_type_enum"), nullable=False, default=ReminderTypeEnum.GENTLE)
+    sent_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+
+    timesheet = db.relationship('Timesheet', back_populates='reminders')

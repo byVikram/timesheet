@@ -30,5 +30,7 @@ DB_ROLE_ID = {
 
 EMAIL_SUBJECTS = {
     "WELCOME":"Welcome to Stellar IT Solutions",
-    "WEEKLY_REMINDER":"Gentle Reminder: Weekly Timesheet Due"
+    "WEEKLY_REMINDER":"Gentle Reminder: Weekly Timesheet Due",
+    "SECOND_REMINDER":"Timesheet Submission Required - Action Needed",
+    "THIRD_REMINDER":"Final Reminder: Submit Your Timesheet Today",
 }
