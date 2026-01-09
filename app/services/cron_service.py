@@ -13,7 +13,7 @@ def sendEmailsToDraftTimesheets():
 
         now = datetime.utcnow()
 
-        if now.weekday() == 4 and now.hour == 11:
+        if now.weekday() == 4 and now.hour == 10:
             draftTimesheets = (
                 db.session.query(
                     User.full_name,

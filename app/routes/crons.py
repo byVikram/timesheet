@@ -15,7 +15,7 @@ blp = Blueprint(
 @blp.route("/weekly-reminder")
 class WeeklyReminder(MethodView):
 	@blp.doc(description="Send weekly reminder emails to users with draft timesheets")
-	def post(self):
+	def get(self):
 		try:
 			print("post request received")
 
