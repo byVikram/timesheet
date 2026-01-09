@@ -219,6 +219,7 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
             "week_start": Timesheet.week_start,
             "week_end": Timesheet.week_end,
             "status": Timesheet.status,
+            "total_hours": "total_hours",
         }
 
         sort_by = timesheetData.get("sort_by")
@@ -233,9 +234,9 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
 
             # Apply ascending or descending
             if sort_direction == "desc":
-                query = query.order_by(column.desc())
+                query = query.order_by(column.desc()) if sort_by != "total_hours" else query.order_by(desc(column))
             else:
-                query = query.order_by(column.asc())
+                query = query.order_by(column.asc()) if sort_by != "total_hours" else query.order_by(column)
 
         if download:
             allTimesheets = query.all()
