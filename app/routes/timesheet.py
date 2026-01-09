@@ -322,3 +322,5 @@ class DeleteTimesheetEntry(MethodView):
 
 		except Exception as e:
 			return getErrorMessage(str(e)), 500
+
+

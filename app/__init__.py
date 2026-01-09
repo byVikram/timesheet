@@ -17,6 +17,7 @@ from .routes.organization import blp as OrgBlueprint
 from .routes.project import blp as ProjectBlueprint
 from .routes.timesheet import blp as TimesheetBlueprint
 from .routes.reports import blp as ReportsBlueprint
+from .routes.crons import blp as CronsBlueprint
 
 
 def create_app():
@@ -51,6 +52,7 @@ def create_app():
     app.config['APP_EMAIL_ADDRESS'] = os.getenv('APP_EMAIL_ADDRESS')
     app.config['APP_EMAIL_ADDRESS_PASSWORD'] = os.getenv('APP_EMAIL_ADDRESS_PASSWORD')
     app.config['LOGIN_URL'] = os.getenv('LOGIN_URL')
+    app.config['RESET_URL'] = os.getenv('RESET_URL')
     app.config['HR_EMAIL'] = os.getenv('HR_EMAIL')
     app.config['HR_PHONE'] = os.getenv('HR_PHONE')
 
@@ -66,6 +68,7 @@ def create_app():
     api.register_blueprint(ProjectBlueprint, url_prefix="/project")
     api.register_blueprint(TimesheetBlueprint, url_prefix="/timesheet")
     api.register_blueprint(ReportsBlueprint, url_prefix="/reports")
+    api.register_blueprint(CronsBlueprint, url_prefix="/cron")
 
 
     return app

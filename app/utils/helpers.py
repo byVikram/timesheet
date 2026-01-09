@@ -347,22 +347,24 @@ def sendEmailFromTemplate(templatePath, subject, userData):
 		bool: True if the email was sent successfully, False otherwise.
 	"""
 	try:
-		with open(templatePath, "r") as file:
+		with open(templatePath, "r", encoding="utf-8") as file:
+
 			html_template = file.read()
 
 		# Replace placeholders with actual user data
 		htmlContent = (
 			html_template
 			.replace("[LOGIN_URL]", current_app.config['LOGIN_URL'])
-			.replace("[EMAIL]", userData['email'])
-			.replace("[NAME]", userData['name'])
-			.replace("[TEMP_PASSWORD]", userData['TEMP_PASSWORD'])
+			.replace("[RESET_URL]", current_app.config['RESET_URL'])
+			.replace("[EMAIL]", userData.get('email', ''))
+			.replace("[NAME]", userData.get('name', ''))
+			.replace("[TEMP_PASSWORD]", userData.get('TEMP_PASSWORD', ''))
 			.replace("[HR_EMAIL]", current_app.config['HR_EMAIL'])
 			.replace("[HR_PHONE]", current_app.config['HR_PHONE'])
 			.replace("[CURRENT_YEAR]", str(datetime.now().year))
 		)
 
-		return emailSender(userData['email'], subject, htmlContent)
+		return emailSender(userData.get('email', ''), subject, htmlContent)
 
 	except Exception as e:
 		current_app.logger.error(
