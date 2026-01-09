@@ -22,7 +22,7 @@ def sendEmailsToDraftTimesheets():
                     Timesheet, Timesheet.user_id == User.id,
                 ).filter(
                     Timesheet.status == TIMESHEET_STATUS['DRAFT'],
-                    User.role_id.in_([DB_ROLE_ID["SUPER_ADMIN"]]),
+                    User.role_id.in_([DB_ROLE_ID["MANAGER"], DB_ROLE_ID["EMPLOYEE"]]),
                 ).all()
             )
 
