@@ -38,7 +38,6 @@ class SecondReminder(MethodView):
 	@blp.doc(description="Send second reminder emails to users with draft timesheets")
 	def get(self):
 		try:
-			print("post request received")
 
 			timesheet, error = sendSecondReminderToDraftTimesheets()
 

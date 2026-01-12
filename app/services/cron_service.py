@@ -17,7 +17,7 @@ def sendEmailsToDraftTimesheets():
                     User.full_name,
                     User.email,
                     Timesheet.id,
-                    Timesheet.week_start == now.date() - timedelta(days=now.weekday()),
+                    
                 )
                 .join(
                     Timesheet,
@@ -26,6 +26,7 @@ def sendEmailsToDraftTimesheets():
                 .filter(
                     Timesheet.status == TIMESHEET_STATUS["DRAFT"],
                     User.role_id.in_([DB_ROLE_ID["MANAGER"], DB_ROLE_ID["EMPLOYEE"]]),
+                    Timesheet.week_start == now.date() - timedelta(days=now.weekday()),
 
                     # FIXME: Remove the bottom lines
                     # Timesheet.status == TIMESHEET_STATUS["PARTIAL_REJECT"],
@@ -85,7 +86,6 @@ def sendSecondReminderToDraftTimesheets():
                     User.full_name,
                     User.email,
                     Timesheet.id,
-                    Timesheet.week_start == now.date() - timedelta(weeks=1),
                 )
                 .join(
                     Timesheet,
@@ -94,6 +94,7 @@ def sendSecondReminderToDraftTimesheets():
                 .filter(
                     Timesheet.status == TIMESHEET_STATUS["DRAFT"],
                     User.role_id.in_([DB_ROLE_ID["MANAGER"], DB_ROLE_ID["EMPLOYEE"]]),
+                    Timesheet.week_start <= now.date() - timedelta(weeks=1)
 
                     # FIXME: Remove the bottom lines
                     # Timesheet.status == TIMESHEET_STATUS["PARTIAL_REJECT"],
