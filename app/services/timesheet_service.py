@@ -739,13 +739,16 @@ def createTimesheetsForAllUsers():
         # today = datetime.utcnow().date()
         now = datetime.utcnow()
 
-        if now.weekday() != 6:
-            return None, "Skipped: Not scheduled Day"
+        # if now.weekday() != 6:
+        #     return None, "Skipped: Not scheduled Day"
 
         today = now.date()
 
-        next_week_start = today + timedelta(days=1)  # Monday
-        next_week_end = next_week_start + timedelta(days=6)  # Sunday
+        # next_week_start = today + timedelta(days=1)  # Monday
+        # next_week_end = next_week_start + timedelta(days=6)  # Sunday
+
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
 
         # week_start = today - timedelta(days=today.weekday())  # Monday
         # week_end = week_start + timedelta(days=6)  # Sunday
@@ -758,8 +761,8 @@ def createTimesheetsForAllUsers():
         existing_ts = (
             Timesheet.query.filter(
                 Timesheet.user_id.in_(user_ids),
-                Timesheet.week_start == next_week_start,
-                Timesheet.week_end == next_week_end,
+                Timesheet.week_start == week_start,
+                Timesheet.week_end == week_end,
             )
             .with_entities(Timesheet.user_id)
             .all()
@@ -770,8 +773,8 @@ def createTimesheetsForAllUsers():
         timesheet_data = [
             {
                 "user_id": uid,
-                "week_start": next_week_start,
-                "week_end": next_week_end,
+                "week_start": week_start,
+                "week_end": week_end,
                 "status": TIMESHEET_STATUS["DRAFT"],
             }
             for uid in user_ids

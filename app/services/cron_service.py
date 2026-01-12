@@ -79,7 +79,7 @@ def sendSecondReminderToDraftTimesheets():
     try:
         now = datetime.utcnow()
 
-        if now.weekday() == 1:
+        if now.weekday() == 0:
             draftTimesheets = (
                 db.session.query(
                     User.full_name,
