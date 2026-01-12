@@ -61,15 +61,15 @@ def getUserTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
     Fetch paginated timesheet records with filtering based on role and input data.
 
     Args:
-                                                                                                                                    orgId (int): Organization ID (required for HR role).
-                                                                                                                                    userId (int): User ID (required for Employee role).
-                                                                                                                                    role (str): User role ("Super Admin", "HR", "Employee").
-                                                                                                                                    timesheetData (dict): Filter parameters.
-                                                                                                                                    page (int): Pagination page number.
-                                                                                                                                    per_page (int): Items per page.
+        orgId (int): Organization ID (required for HR role).
+        userId (int): User ID (required for Employee role).
+        role (str): User role ("Super Admin", "HR", "Employee").
+        timesheetData (dict): Filter parameters.
+        page (int): Pagination page number.
+        per_page (int): Items per page.
 
     Returns:
-                                                                                                                                    dict, error: Returns response dict or error string.
+        dict, error: Returns response dict or error string.
     """
 
     try:
@@ -150,9 +150,9 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
             "Pending Approval": 0,
             "Partially Approved": 0,
             "Partially Rejected": 0,
-            "Approved": 1,
-            "Rejected": 2,
-            "Draft": 3,
+            "Rejected": 1,
+            "Draft": 2,
+            "Approved": 3,
         }
 
         query = (
