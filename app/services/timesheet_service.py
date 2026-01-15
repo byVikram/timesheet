@@ -129,7 +129,9 @@ def getUserTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10):
         return None, str(e)
 
 
-def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, download=False):
+def getAllTimesheets(
+    orgId, userId, role, timesheetData, page=1, per_page=10, download=False
+):
     """
     Fetch paginated timesheet records with filtering based on role and input data.
 
@@ -186,12 +188,16 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
             )
         )
 
-        if timesheetData['start_date']:
-            startDate = timesheetData['start_date'] - timedelta(days=timesheetData['start_date'].weekday())
+        if timesheetData["start_date"]:
+            startDate = timesheetData["start_date"] - timedelta(
+                days=timesheetData["start_date"].weekday()
+            )
             query = query.filter(Timesheet.week_start >= startDate)
 
-        if timesheetData['end_date']:
-            endDate = timesheetData['end_date'] + timedelta(days=6 - timesheetData['end_date'].weekday())
+        if timesheetData["end_date"]:
+            endDate = timesheetData["end_date"] + timedelta(
+                days=6 - timesheetData["end_date"].weekday()
+            )
             query = query.filter(Timesheet.week_end <= endDate)
 
         if role == ROLES["HR"]:
@@ -234,9 +240,17 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
 
             # Apply ascending or descending
             if sort_direction == "desc":
-                query = query.order_by(column.desc()) if sort_by != "total_hours" else query.order_by(desc(column))
+                query = (
+                    query.order_by(column.desc())
+                    if sort_by != "total_hours"
+                    else query.order_by(desc(column))
+                )
             else:
-                query = query.order_by(column.asc()) if sort_by != "total_hours" else query.order_by(column)
+                query = (
+                    query.order_by(column.asc())
+                    if sort_by != "total_hours"
+                    else query.order_by(column)
+                )
 
         if download:
             allTimesheets = query.all()
@@ -279,15 +293,21 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
 
 def downloadTimesheets(orgId, userId, role, timesheetData):
     # Get all timesheets
-    timesheets, error = getAllTimesheets(orgId, userId, role, timesheetData, download=True)
+    timesheets, error = getAllTimesheets(
+        orgId, userId, role, timesheetData, download=True
+    )
     if error:
         return None, error
 
-    if timesheetData['start_date']:
-        startDate = timesheetData['start_date'] - timedelta(days=timesheetData['start_date'].weekday())
+    if timesheetData["start_date"]:
+        startDate = timesheetData["start_date"] - timedelta(
+            days=timesheetData["start_date"].weekday()
+        )
 
-    if timesheetData['end_date']:
-        endDate = timesheetData['end_date'] + timedelta(days=6 - timesheetData['end_date'].weekday())
+    if timesheetData["end_date"]:
+        endDate = timesheetData["end_date"] + timedelta(
+            days=6 - timesheetData["end_date"].weekday()
+        )
 
     # Create a workbook and sheet
     wb = Workbook()
@@ -302,17 +322,19 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
 
     # Create border style
     thin_border = Border(
-        left=Side(style='thin', color=BORDER_COLOR),
-        right=Side(style='thin', color=BORDER_COLOR),
-        top=Side(style='thin', color=BORDER_COLOR),
-        bottom=Side(style='thin', color=BORDER_COLOR)
+        left=Side(style="thin", color=BORDER_COLOR),
+        right=Side(style="thin", color=BORDER_COLOR),
+        top=Side(style="thin", color=BORDER_COLOR),
+        bottom=Side(style="thin", color=BORDER_COLOR),
     )
 
     # Row 1: "Stellar IT" title
-    ws.merge_cells('A1:D1')
+    ws.merge_cells("A1:D1")
     stellar_cell = ws.cell(row=1, column=1, value="Stellar IT")
     stellar_cell.font = Font(bold=True, size=16, color="FFFFFF")
-    stellar_cell.fill = PatternFill(start_color=STELLAR_BLUE, end_color=STELLAR_BLUE, fill_type="solid")
+    stellar_cell.fill = PatternFill(
+        start_color=STELLAR_BLUE, end_color=STELLAR_BLUE, fill_type="solid"
+    )
     stellar_cell.alignment = Alignment(horizontal="center", vertical="center")
 
     # Make row 1 taller
@@ -325,7 +347,7 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
 
     period_text = f"Period: {formatDatetime(startDate, '%b %d, %Y')} - {formatDatetime(endDate, '%b %d, %Y')}"
 
-    ws.merge_cells('A2:D2')
+    ws.merge_cells("A2:D2")
     period_cell = ws.cell(row=2, column=1, value=period_text)
     period_cell.font = Font(bold=True, size=12)
     period_cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -339,7 +361,9 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
 
     # Style headers
     header_font = Font(bold=True, color="FFFFFF", size=11)
-    header_fill = PatternFill(start_color=STELLAR_BLUE, end_color=STELLAR_BLUE, fill_type="solid")
+    header_fill = PatternFill(
+        start_color=STELLAR_BLUE, end_color=STELLAR_BLUE, fill_type="solid"
+    )
     alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     # Write headers with styling
@@ -360,13 +384,21 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
 
         # Alternate row colors
         if idx % 2 == 0:
-            row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+            row_fill = PatternFill(
+                start_color="FFFFFF", end_color="FFFFFF", fill_type="solid"
+            )
         else:
-            row_fill = PatternFill(start_color=LIGHT_BLUE, end_color=LIGHT_BLUE, fill_type="solid")
+            row_fill = PatternFill(
+                start_color=LIGHT_BLUE, end_color=LIGHT_BLUE, fill_type="solid"
+            )
 
         # Create data cells
         ws.cell(row=row_num, column=1, value=ts.get("user_name", ""))
-        ws.cell(row=row_num, column=2, value=f"{ts.get('week_start', '')} - {ts.get('week_end', '')}")
+        ws.cell(
+            row=row_num,
+            column=2,
+            value=f"{ts.get('week_start', '')} - {ts.get('week_end', '')}",
+        )
         ws.cell(row=row_num, column=3, value=ts.get("timesheet_status", ""))
         ws.cell(row=row_num, column=4, value=ts.get("total_hours", ""))
 
@@ -398,14 +430,16 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
                     max_length = max(max_length, len(str(cell.value)))
 
                 # Get column letter from any cell that's not a MergedCell
-                if not column_letter and hasattr(cell, 'column_letter'):
+                if not column_letter and hasattr(cell, "column_letter"):
                     column_letter = cell.column_letter
             except Exception as e:
                 continue
 
         # If we couldn't get column_letter, calculate it from col_idx
         if not column_letter:
-            column_letter = chr(64 + col_idx) if col_idx <= 26 else 'A'  # Simple fallback
+            column_letter = (
+                chr(64 + col_idx) if col_idx <= 26 else "A"
+            )  # Simple fallback
 
         # Add padding to column width
         adjusted_width = min(max_length + 4, 50)  # Cap at 50 for very long content
@@ -415,10 +449,10 @@ def downloadTimesheets(orgId, userId, role, timesheetData):
             ws.column_dimensions[column_letter].width = adjusted_width
 
     # Set specific column widths for better readability
-    ws.column_dimensions['A'].width = 25  # User Name
-    ws.column_dimensions['B'].width = 30  # Period
-    ws.column_dimensions['C'].width = 15  # Status
-    ws.column_dimensions['D'].width = 12  # Total Hours
+    ws.column_dimensions["A"].width = 25  # User Name
+    ws.column_dimensions["B"].width = 30  # Period
+    ws.column_dimensions["C"].width = 15  # Status
+    ws.column_dimensions["D"].width = 12  # Total Hours
 
     # Save to BytesIO to return as a file-like object
     output = io.BytesIO()
@@ -566,17 +600,32 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole, action):
                 "status": entry.status_obj.name if entry.status_obj else None,
                 "comment": None,
                 "can_delete": (
-                    (userRole == "Employee" or (userRole == ROLES["MANAGER"] and action == "view") or (userRole == ROLES["SUPER_ADMIN"] and action == "view")) and entry.status == TIMESHEET_STATUS["DRAFT"]
+                    (
+                        userRole == "Employee"
+                        or (userRole == ROLES["MANAGER"] and action == "view")
+                        or (userRole == ROLES["SUPER_ADMIN"] and action == "view")
+                    )
+                    and entry.status == TIMESHEET_STATUS["DRAFT"]
                 ),
                 "can_approve": (
-                    userRole == ROLES["MANAGER"]
-                    and entry.project.manager_id == userId
-                    and entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
+                    entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
+                    and (
+                        (
+                            userRole == ROLES["MANAGER"]
+                            and entry.project.manager_id == userId
+                        )
+                        or userRole == ROLES["HR"]
+                    )
                 ),
                 "can_reject": (
-                    userRole == ROLES["MANAGER"]
-                    and entry.project.manager_id == userId
-                    and entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
+                    entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
+                    and(
+                        (
+                            userRole == ROLES["MANAGER"]
+                            and entry.project.manager_id == userId
+                        )
+                        or userRole == ROLES["HR"]
+                    )
                 ),
             }
         )
@@ -602,6 +651,9 @@ def copyTimesheetEntry(userId, orgId, timesheet_code):
 
         # Fetch the timesheet
         timesheet = Timesheet.query.filter_by(code=timesheet_code).first()
+
+        if timesheet.user_id != userId:
+            return None, "Not authorized to copy entries"
 
         holidays = Holiday.query.filter(
             Holiday.org_id == orgId,
@@ -964,7 +1016,7 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
     return responses, None
 
 
-def reviewTimesheet(userId, timesheetData):
+def reviewTimesheet(userId, userRole, timesheetData):
     try:
         # Extract action (approve / reject)
         action = timesheetData["action"]
@@ -1054,7 +1106,7 @@ def reviewTimesheet(userId, timesheetData):
             return None, "Timesheet not able to cancel"
 
         # Authorization check
-        if timesheetEntry.project.manager_id != userId:
+        if timesheetEntry.project.manager_id != userId and userRole != ROLES["HR"]:
             return None, "Not authorized to review this timesheet"
 
         # Status must be pending
@@ -1093,7 +1145,6 @@ def reviewTimesheet(userId, timesheetData):
         )
         db.session.add(history)
         db.session.commit()
-
 
         return f"Timesheet {action}d successfully", None
 

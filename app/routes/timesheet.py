@@ -313,10 +313,7 @@ class ReviewTimesheet(MethodView):
 	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"], ROLES["EMPLOYEE"]])
 	def post(self, timesheetData):
 		try:
-			timesheet, error = reviewTimesheet(self.userId, timesheetData)
-
-			print(timesheet, "Timesheet")
-			print(error, "error")
+			timesheet, error = reviewTimesheet(self.userId, self.userRole, timesheetData)
 
 			if error:
 				return getErrorMessage(error), 400
