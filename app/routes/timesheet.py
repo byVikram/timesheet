@@ -13,6 +13,7 @@ from app.schemas.timesheet_schema import (
 	UpdateTimesheetsSchema,
 )
 from app.services.timesheet_service import (
+	copyTimesheetEntry,
 	createHoliday,
 	createTimesheetEntry,
 	createTimesheetsForAllUsers,
@@ -127,7 +128,7 @@ class DownloadTimesheets(MethodView):
 			output, error = downloadTimesheets(
 				self.orgId, self.userId, self.userRole, timesheetData
 			)
-			
+
 			encoded = base64.b64encode(output.getvalue()).decode('utf-8')
 
 			if error:
@@ -200,6 +201,33 @@ class GetTimesheet(MethodView):
 
 			return getSuccessMessage(
 				"Timesheet fetched successfully",
+				timesheet,
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
+@blp.route("/copy-details")
+class CopyTimesheetDetails(MethodView):
+	@blp.doc(description="Copy from previous timesheet to current timesheet")
+	@blp.arguments(GetTimesheetSchema)
+	@tokenValidation
+	@authorize(["ALL"])
+	def post(self, timesheetData):
+		try:
+
+			timesheet, error = copyTimesheetEntry(
+				self.userId,
+				self.orgId,
+				timesheetData["timesheet_code"],
+			)
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				"Timesheet copied successfully",
 				timesheet,
 			)
 

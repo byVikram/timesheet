@@ -277,68 +277,12 @@ def getAllTimesheets(orgId, userId, role, timesheetData, page=1, per_page=10, do
         return None, str(e)
 
 
-
-
-# def downloadTimesheets(orgId, userId, role, timesheetData):
-#     # Get all timesheets
-#     timesheets, error = getAllTimesheets(orgId, userId, role, timesheetData, download=True)
-#     if error:
-#         return None, error
-
-#     # Create a workbook and sheet
-#     wb = Workbook()
-#     ws = wb.active
-#     ws.title = "Timesheets"
-
-#     # Define headers
-#     headers = ["User Name", "Period", "Status", "Total Hours"]
-
-#     # Style headers
-#     header_font = Font(bold=True, color="FFFFFF")
-#     header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-#     alignment = Alignment(horizontal="center", vertical="center")
-
-#     # Write headers
-#     for col_num, header in enumerate(headers, 1):
-#         cell = ws.cell(row=1, column=col_num, value=header)
-#         cell.font = header_font
-#         cell.fill = header_fill
-#         cell.alignment = alignment
-
-#     # Write timesheet rows
-#     for row_num, ts in enumerate(timesheets["timesheet"], 2):
-#         ws.cell(row=row_num, column=1, value=ts["user_name"])
-#         ws.cell(row=row_num, column=2, value=ts["week_start"] + " - " + ts["week_end"])
-#         ws.cell(row=row_num, column=3, value=ts["timesheet_status"])
-#         ws.cell(row=row_num, column=4, value=ts["total_hours"])
-#     # Auto-adjust column widths
-#     for col in ws.columns:
-#         max_length = 0
-#         column = col[0].column_letter  # Get column name
-#         for cell in col:
-#             try:
-#                 if cell.value:
-#                     max_length = max(max_length, len(str(cell.value)))
-#             except:
-#                 pass
-#         adjusted_width = max_length + 2
-#         ws.column_dimensions[column].width = adjusted_width
-
-#     # Save to BytesIO to return as a file-like object
-#     output = io.BytesIO()
-#     wb.save(output)
-#     output.seek(0)
-
-#     return output, None
-
-
-
 def downloadTimesheets(orgId, userId, role, timesheetData):
     # Get all timesheets
     timesheets, error = getAllTimesheets(orgId, userId, role, timesheetData, download=True)
     if error:
         return None, error
-    
+
     if timesheetData['start_date']:
         startDate = timesheetData['start_date'] - timedelta(days=timesheetData['start_date'].weekday())
 
@@ -650,6 +594,88 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole, action):
     }, None
 
 
+def copyTimesheetEntry(userId, orgId, timesheet_code):
+    try:
+
+        if not timesheet_code:
+            return {"timesheet_data": [], "timesheet_status": None}, None
+
+        # Fetch the timesheet
+        timesheet = Timesheet.query.filter_by(code=timesheet_code).first()
+
+        holidays = Holiday.query.filter(
+            Holiday.org_id == orgId,
+            Holiday.date >= timesheet.week_start,
+            Holiday.date <= timesheet.week_end,
+        ).all()
+        holiday_dates = {h.date for h in holidays}
+
+        prevTimesheet = (
+            Timesheet.query.filter(
+                Timesheet.user_id == userId,
+                Timesheet.week_end < timesheet.week_start,
+            )
+            .order_by(Timesheet.week_end.desc())
+            .limit(1)
+            .first()
+        )
+
+        if prevTimesheet is None:
+            return None, "No previous timesheet to copy from"
+
+        for prev_entry in prevTimesheet.entries:
+            # Check if entry already exists in current timesheet
+
+            existing_entry = TimesheetEntry.query.filter_by(
+                timesheet_id=timesheet.id,
+                project_id=prev_entry.project_id,
+                task_id=prev_entry.task_id,
+            ).first()
+
+            if existing_entry:
+                continue  # Skip if entry already exists
+
+            # Prepare 7-day time_records
+            time_records = []
+            for i in range(7):
+                day = timesheet.week_start + timedelta(days=i)
+                time_records.append(
+                    {
+                        "date": day.isoformat(),
+                        "hours": prev_entry.time_records[i]["hours"],
+                        "note": prev_entry.time_records[i]["note"],
+                        "is_weekend": day.weekday() >= 5,
+                        "is_holiday": day in holiday_dates,
+                        "is_editable": True,
+                    }
+                )
+
+            # Create new entry
+            new_entry = TimesheetEntry(
+                timesheet_id=timesheet.id,
+                project_id=prev_entry.project_id,
+                task_id=prev_entry.task_id,
+                status=TIMESHEET_STATUS["DRAFT"],
+                hours=prev_entry.hours,
+                time_records=time_records,
+                approver_id=None,
+            )
+
+            db.session.add(new_entry)
+            db.session.flush()
+
+        db.session.commit()
+
+        return "Timesheet copied successfully", None
+
+    except Exception as e:
+        db.session.rollback()
+        return None, str(e)
+
+    finally:
+        db.session.close()
+
+
 def createTimesheetEntry(userId, orgId, timesheetEntryData):
     """
     Create a TimesheetEntry under a given timesheet for the specified project and task.
@@ -823,82 +849,6 @@ def deleteTimesheetEntry(userId, timesheetEntryData):
     except Exception as e:
         db.session.rollback()
         return None, str(e)
-
-
-# def updateTimesheet(userCode, timesheetData):
-# 	"""
-# 	Update hours and notes for a user's timesheet for a specific project and task.
-# 	Expects timesheetData to contain:
-# 									- project_code
-# 									- task_code
-# 									- time_records: list of {"date": "YYYY-MM-DD", "hours": float, "note": str}
-# 									- comment (optional)
-# 	"""
-
-# 	userId, error = getIdFromCode(User, userCode)
-# 	if error:
-# 		return None, error
-
-# 	projectId, error = getIdFromCode(Project, timesheetData.get("project_code"))
-
-# 	if error:
-# 		return None, error
-
-# 	taskId, error = getIdFromCode(Task, timesheetData.get("task_code"))
-# 	if error:
-# 		return None, error
-
-# 	if not (projectId and taskId):
-# 		return None, "Project and Task codes are required"
-
-# 	today = datetime.utcnow().date()
-# 	week_start = today - timedelta(days=today.weekday())
-# 	week_end = week_start + timedelta(days=6)
-
-# 	# Fetch the existing timesheet
-# 	timesheet = Timesheet.query.filter_by(
-# 		user_id=userId,
-# 		project_id=projectId,
-# 		task_id=taskId,
-# 		week_start=week_start,
-# 		week_end=week_end,
-# 	).first()
-
-# 	if not timesheet:
-# 		return None, "Timesheet not found for the given project and task"
-
-# 	# Update time_records
-# 	updated_records = timesheetData.get("time_records", [])
-
-# 	for record in timesheet.time_records:
-# 		for updated in updated_records:
-
-# 			if str(record["date"]) == str(updated["date"]):
-# 				record["hours"] = updated.get("hours", record["hours"])
-# 				record["note"] = updated.get("note", record["note"])
-
-# 	Timesheet.query.filter_by(id=timesheet.id).update(
-# 		{"time_records": timesheet.time_records}
-# 	)
-
-# 	db.session.commit()
-
-# 	# Prepare response
-# 	task = Task.query.get(taskId)
-# 	response = {
-# 		"timesheet_code": timesheet.code,
-# 		"task_code": task.code if task else None,
-# 		"task_name": task.name if task else None,
-# 		"project_code": timesheet.project.code if timesheet.project else None,
-# 		"project_name": timesheet.project.name if timesheet.project else None,
-# 		"week_start": timesheet.week_start.isoformat(),
-# 		"week_end": timesheet.week_end.isoformat(),
-# 		"time_records": timesheet.time_records,
-# 		"status": timesheet.status_obj.name,
-# 		"comment": timesheet.comment,
-# 	}
-
-# 	return response, None
 
 
 def updateTimesheets(userId, timesheetsData, userRole="Employee"):

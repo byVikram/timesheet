@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 import smtplib
 from functools import wraps
 import json
+from zoneinfo import ZoneInfo
 from flask import current_app, jsonify, request, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, timezone
@@ -264,24 +265,53 @@ def paginateQuery(query, page=1, per_page=10):
 
 
 
-def formatDatetime(dt, fmt="%d/%m/%Y"):
-	"""
-	Format a datetime or date object into a string.
+# def formatDatetime(dt, fmt="%d/%m/%Y"):
+# 	"""
+# 	Format a datetime or date object into a string.
 
-	Args:
-		dt (datetime or date): The date or datetime object to format.
-		fmt (str): Format type: "iso" (default) or a custom strftime pattern.
+# 	Args:
+# 		dt (datetime or date): The date or datetime object to format.
+# 		fmt (str): Format type: "iso" (default) or a custom strftime pattern.
 
-	Returns:
-		str: Formatted date string.
-	"""
-	if dt is None:
-		return None
+# 	Returns:
+# 		str: Formatted date string.
+# 	"""
+# 	if dt is None:
+# 		return None
 
-	if fmt == "iso":
-		return dt.isoformat()
-	else:
-		return dt.strftime(fmt)
+# 	if fmt == "iso":
+# 		return dt.isoformat()
+# 	else:
+# 		return dt.strftime(fmt)
+
+def formatDatetime(dt, fmt="%d/%m/%Y", zone="Asia/Kolkata"):
+    """
+    Format a datetime or date object into a string,
+    converting from UTC to IST.
+
+    Args:
+        dt (datetime or date): The date or datetime object to format (assumed UTC).
+        fmt (str): "iso" or a custom strftime pattern.
+
+    Returns:
+        str: Formatted date string.
+    """
+    if dt is None:
+        return None
+
+    # Only convert if it's a datetime (not a date)
+    if isinstance(dt, datetime):
+        # If naive, assume UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+
+        # Convert to IST
+        dt = dt.astimezone(ZoneInfo(zone))
+
+    if fmt == "iso":
+        return dt.isoformat()
+    else:
+        return dt.strftime(fmt)
 
 
 def emailSender(emailAddress, emailSubject, emailBody):
