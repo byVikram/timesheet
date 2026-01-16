@@ -912,108 +912,113 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
                     - time_records: list of {"date": "YYYY-MM-DD", "hours": float, "note": str}
                     - comment (optional, applies to the Timesheet)
     """
+    try:
 
-    responses = []
+        responses = []
 
-    for entryData in timesheetsData["timesheets"]:
-        # project_code = entryData.get("project_code")
-        # task_code = entryData.get("task_code")
+        for entryData in timesheetsData["timesheets"]:
+            # project_code = entryData.get("project_code")
+            # task_code = entryData.get("task_code")
 
-        # Get project and task IDs
-        # projectId, project_error = getIdFromCode(Project, project_code) if project_code else (None, None)
-        # taskId, task_error = getIdFromCode(Task, task_code) if task_code else (None, None)
+            # Get project and task IDs
+            # projectId, project_error = getIdFromCode(Project, project_code) if project_code else (None, None)
+            # taskId, task_error = getIdFromCode(Task, task_code) if task_code else (None, None)
 
-        # if project_error or task_error:
-        # 	responses.append({"error": project_error or task_error})
-        # 	continue
+            # if project_error or task_error:
+            # 	responses.append({"error": project_error or task_error})
+            # 	continue
 
-        # if not (projectId and taskId):
-        # 	responses.append({"error": "Project and Task codes are required"})
-        # 	continue
+            # if not (projectId and taskId):
+            # 	responses.append({"error": "Project and Task codes are required"})
+            # 	continue
 
-        # Fetch the timesheet for this user and week
-        # timesheet = Timesheet.query.filter_by(
-        # 	user_id=userId,
-        # 	week_start=week_start,
-        # 	week_end=week_end
-        # ).first()
+            # Fetch the timesheet for this user and week
+            # timesheet = Timesheet.query.filter_by(
+            # 	user_id=userId,
+            # 	week_start=week_start,
+            # 	week_end=week_end
+            # ).first()
 
-        # if not timesheet:
-        # 	responses.append({"error": f"Timesheet not found for user for this week"})
-        # 	continue
+            # if not timesheet:
+            # 	responses.append({"error": f"Timesheet not found for user for this week"})
+            # 	continue
 
-        # print(timesheet,"timesheet")
+            # print(timesheet,"timesheet")
 
-        # Fetch or create TimesheetEntry
-        entry = TimesheetEntry.query.filter_by(
-            code=entryData["timesheet_entry_code"]
-        ).first()
+            # Fetch or create TimesheetEntry
+            entry = TimesheetEntry.query.filter_by(
+                code=entryData["timesheet_entry_code"]
+            ).first()
 
-        timesheet = entry.timesheet
+            timesheet = entry.timesheet
 
-        if timesheet.user_id != userId and userRole not in ["HR", "Super Admin"]:
-            return None, "Not authorized to update particular timesheet"
+            if timesheet.user_id != userId and userRole not in ["HR", "Super Admin"]:
+                return None, "Not authorized to update particular timesheet"
 
-        # if not entry:
-        # 	print("creating entry")
-        # 	entry, _ = createTimesheetEntry(timesheet.id, project_code, task_code)
+            # if not entry:
+            # 	print("creating entry")
+            # 	entry, _ = createTimesheetEntry(timesheet.id, project_code, task_code)
 
-        # Update time_records safely
-        updated_records = entryData.get("time_records", [])
-        if not isinstance(updated_records, list):
-            responses.append({"error": "time_records must be a list of objects"})
-            continue
+            # Update time_records safely
+            updated_records = entryData.get("time_records", [])
+            if not isinstance(updated_records, list):
+                responses.append({"error": "time_records must be a list of objects"})
+                continue
 
-        updated_records_map = {str(r["date"]): r for r in updated_records}
+            updated_records_map = {str(r["date"]): r for r in updated_records}
 
-        total_hours = 0
+            total_hours = 0
 
-        for i, record in enumerate(entry.time_records):
-            date_str = str(record["date"])
-            if date_str in updated_records_map:
-                entry.time_records[i]["hours"] = updated_records_map[date_str].get(
-                    "hours", record["hours"]
-                )
-                entry.time_records[i]["note"] = updated_records_map[date_str].get(
-                    "note", record["note"]
-                )
+            for i, record in enumerate(entry.time_records):
+                date_str = str(record["date"])
+                if date_str in updated_records_map:
+                    entry.time_records[i]["hours"] = updated_records_map[date_str].get(
+                        "hours", record["hours"]
+                    )
+                    entry.time_records[i]["note"] = updated_records_map[date_str].get(
+                        "note", record["note"]
+                    )
 
-            total_hours += entry.time_records[i]["hours"]
+                total_hours += entry.time_records[i]["hours"]
 
-        TimesheetEntry.query.filter_by(id=entry.id).update(
-            {"time_records": entry.time_records, "hours": total_hours}
-        )
-        db.session.commit()
-
-        if timesheetsData["action"] == "submit":
             TimesheetEntry.query.filter_by(id=entry.id).update(
-                {"status": TIMESHEET_STATUS["PENDING_APPROVAL"]}
+                {"time_records": entry.time_records, "hours": total_hours}
             )
             db.session.commit()
 
-            data = {
-                "action": "submit",
-                "timesheet_code": timesheetsData["timesheet_code"],
+            if timesheetsData["action"] == "submit":
+                print("submitting timesheet")
+                TimesheetEntry.query.filter_by(id=entry.id).update(
+                    {"status": TIMESHEET_STATUS["PENDING_APPROVAL"]}
+                )
+                db.session.commit()
+
+                data = {
+                    "action": "submit",
+                    "timesheet_code": timesheetsData["timesheet_code"],
+                }
+
+                reviewTimesheet(userId, userRole, data)
+
+            # Prepare response
+            response = {
+                "timesheet_code": timesheet.code,
+                "task_code": entry.task.code if entry.task else None,
+                "task_name": entry.task.name if entry.task else None,
+                "project_code": entry.project.code if entry.project else None,
+                "project_name": entry.project.name if entry.project else None,
+                "week_start": timesheet.week_start.isoformat(),
+                "week_end": timesheet.week_end.isoformat(),
+                "time_records": entry.time_records,
+                "status": timesheet.status_obj.name if timesheet.status_obj else None,
+                # "comment": timesheet.comment,
             }
+            responses.append(response)
 
-            reviewTimesheet(userId, data)
-
-        # Prepare response
-        response = {
-            "timesheet_code": timesheet.code,
-            "task_code": entry.task.code if entry.task else None,
-            "task_name": entry.task.name if entry.task else None,
-            "project_code": entry.project.code if entry.project else None,
-            "project_name": entry.project.name if entry.project else None,
-            "week_start": timesheet.week_start.isoformat(),
-            "week_end": timesheet.week_end.isoformat(),
-            "time_records": entry.time_records,
-            "status": timesheet.status_obj.name if timesheet.status_obj else None,
-            # "comment": timesheet.comment,
-        }
-        responses.append(response)
-
-    return responses, None
+        return responses, None
+    
+    except Exception as e:
+        return None, str(e)
 
 
 def reviewTimesheet(userId, userRole, timesheetData):
