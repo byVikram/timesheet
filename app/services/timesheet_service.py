@@ -674,23 +674,22 @@ def copyTimesheetEntry(userId, orgId, timesheet_code):
 
         if prevTimesheet is None:
             return None, "No previous timesheet to copy from"
-
-        for prev_entry in prevTimesheet.entries:
-            # Check if entry already exists in current timesheet
-
-            existing_entry = TimesheetEntry.query.filter_by(
+        
+        existing_entry = TimesheetEntry.query.filter_by(
                 timesheet_id=timesheet.id,
                 # project_id=prev_entry.project_id,
                 # task_id=prev_entry.task_id,
             ).all()
 
-            if existing_entry:
-                # continue  # Skip if entry already exists
+        if existing_entry:
+            # continue  # Skip if entry already exists
 
-                for entry in existing_entry:
-                    db.session.delete(entry)
-                    db.session.flush()
+            for entry in existing_entry:
+                db.session.delete(entry)
+                db.session.flush()
 
+        for prev_entry in prevTimesheet.entries:
+            # Check if entry already exists in current timesheet
 
             # Prepare 7-day time_records
             time_records = []
