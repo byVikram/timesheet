@@ -680,12 +680,17 @@ def copyTimesheetEntry(userId, orgId, timesheet_code):
 
             existing_entry = TimesheetEntry.query.filter_by(
                 timesheet_id=timesheet.id,
-                project_id=prev_entry.project_id,
-                task_id=prev_entry.task_id,
-            ).first()
+                # project_id=prev_entry.project_id,
+                # task_id=prev_entry.task_id,
+            ).all()
 
             if existing_entry:
-                continue  # Skip if entry already exists
+                # continue  # Skip if entry already exists
+
+                for entry in existing_entry:
+                    db.session.delete(entry)
+                    db.session.flush()
+
 
             # Prepare 7-day time_records
             time_records = []
