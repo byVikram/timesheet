@@ -568,15 +568,30 @@ def lookup(userCode, userRole):
     try:
 
         timesheetStatus = TimesheetStatus.query.all()
-        userProjects, error = getUserProjects(userCode, userRole)
+        # userProjects, error = getUserProjects(userCode, userRole)
 
-        if error:
-            return None, error
+        query = Project.query
+
+
+        if userRole == ROLES["MANAGER"]:
+            manager_id = (
+                db.session.query(User.id)
+                .filter(User.code == userCode)
+                .scalar()
+            )
+            query = query.filter(Project.manager_id == manager_id)
+
+        elif userRole == ROLES["EMPLOYEE"]:
+            query = query.filter(False)  # returns no projects
+
+        # HR and SUPER_ADMIN fall through with no filter → all projects
+
+        userProjects = query.all()
 
         projectsList = [
             {
-                "value": project["code"],
-                "label": project["name"],
+                "value": project.code,
+                "label": project.name,
             }
             for project in userProjects
         ]
