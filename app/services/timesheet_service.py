@@ -1163,51 +1163,41 @@ def reviewTimesheet(userId, userRole, timesheetData):
         return None, str(e)
 
 
+
 def bulkReviewTimesheet(userId, userRole, timesheetData):
     try:
-        print(timesheetData,"timesheetData in service")
         # Extract action (approve / reject)
         action = timesheetData["action"]
-
-        is_admin = userRole in (ROLES["HR"], ROLES["SUPER_ADMIN"])
-
         if action not in ["approve", "reject"]:
             return None, "Invalid action."
 
-        # Find timesheet
+        is_admin = userRole in (ROLES["HR"], ROLES["SUPER_ADMIN"])
 
-        for timesheetCode in timesheetData["timesheet_codes"]:
-
-            # if "timesheet_code" in timesheetData:
-            timesheet = Timesheet.query.filter_by(
-                code=timesheetCode
-            ).first()
-
-            projectId = Project.query.filter_by(
-                code=timesheetData["project_code"]
-            ).first().id
-
+        for timesheetCode in timesheetData.g("timesheet_codes", []):
+            timesheet = Timesheet.query.filter_by(code=timesheetCode).first()
             if not timesheet:
                 return None, f"Invalid timesheet code: {timesheetCode}"
 
-            # timesheetEntries = timesheet.entries
+            project = Project.query.filter_by(code=timesheetData["project_code"]).first()
+            if not project:
+                return None, f"Invalid project code: {timesheetData['project_code']}"
+            projectId = project.id
 
-            
+            # Fetch timesheet entries for this project
             timesheetEntries = TimesheetEntry.query.filter(
                 TimesheetEntry.timesheet_id == timesheet.id,
-                TimesheetEntry.project_id == projectId
+                TimesheetEntry.project_id == projectId,
+                TimesheetEntry.status == TIMESHEET_STATUS["PENDING_APPROVAL"],
             ).all()
 
-            notApprovedCount = sum(1 for entry in timesheetEntries if entry.status != 3)
-            canApproveTimesheet = (
-                notApprovedCount == 1
-            )
+            if not timesheetEntries:
+                return None, f"No entries found for timesheet {timesheetCode} in project {project.code}"
 
+            # Process each timesheet entry
             for timesheetEntry in timesheetEntries:
                 is_manager = timesheetEntry.project.manager_id == userId
 
                 # Authorization check
-                print(timesheetEntry.project.manager_id,userId,userRole,"checking auth")
                 if not (is_manager or is_admin):
                     return None, "Not authorized to review this timesheet"
 
@@ -1215,40 +1205,47 @@ def bulkReviewTimesheet(userId, userRole, timesheetData):
                 if timesheetEntry.status != TIMESHEET_STATUS["PENDING_APPROVAL"]:
                     return None, "Timesheet entry is not pending approval"
 
-                if action == "approve":
-                    print("approving", timesheetEntry.code)
-                    timesheetEntry.status = TIMESHEET_STATUS["APPROVED"]
-                    timesheet.status = (
-                        TIMESHEET_STATUS["APPROVED"]
-                        if canApproveTimesheet
-                        else TIMESHEET_STATUS["PARTIAL_APPROVE"]
-                    )
+                # Store old status before changing
+                old_entry_status = timesheetEntry.status
 
+                # Update entry status
+                if action == "approve":
+                    timesheetEntry.status = TIMESHEET_STATUS["APPROVED"]
                 else:
                     timesheetEntry.status = TIMESHEET_STATUS["REJECTED"]
-                    timesheet.status = (
-                        TIMESHEET_STATUS["REJECTED"]
-                        if canApproveTimesheet
-                        else TIMESHEET_STATUS["PARTIAL_REJECT"]
-                    )
 
                 timesheetEntry.approver_id = userId
 
+                # Add history
                 history = TimesheetHistory(
                     timesheet_entry_id=timesheetEntry.id,
-                    old_status=timesheetEntry.status,
-                    new_status=timesheet.status,
+                    old_status=old_entry_status,
+                    new_status=timesheetEntry.status,
                     changed_by=userId,
                     comment=timesheetData.get("comment"),
                 )
                 db.session.add(history)
 
-                db.session.flush()
+            # After processing all entries, update overall timesheet status
+            approved_count = sum(1 for e in timesheet.entries if e.status == TIMESHEET_STATUS["APPROVED"])
+            rejected_count = sum(1 for e in timesheet.entries if e.status == TIMESHEET_STATUS["REJECTED"])
+            total_entries = len(timesheet.entries)
+
+            if approved_count == total_entries:
+                timesheet.status = TIMESHEET_STATUS["APPROVED"]
+            elif rejected_count == total_entries:
+                timesheet.status = TIMESHEET_STATUS["REJECTED"]
+            elif approved_count > 0:
+                timesheet.status = TIMESHEET_STATUS["PARTIAL_APPROVE"]
+            elif rejected_count > 0:
+                timesheet.status = TIMESHEET_STATUS["PARTIAL_REJECT"]
+            else:
+                timesheet.status = TIMESHEET_STATUS["PENDING_APPROVAL"]
+
+            db.session.flush()
 
         db.session.commit()
-
         return f"Timesheets {action}d successfully", None
-
 
     except Exception as e:
         db.session.rollback()
