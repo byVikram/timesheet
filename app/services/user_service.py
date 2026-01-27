@@ -1,13 +1,11 @@
-
 from sqlalchemy import or_
-from app.constants.lookups import DB_ROLE_ID, EMAIL_SUBJECTS
+from app.constants.lookups import DB_ROLE_ID, EMAIL_SUBJECTS, ROLES
 from app.extensions import db
 from app.models import User, UserRole, Project, UserProject
 from app.models.timesheets import TimesheetStatus
 from app.models.users import Organization
 from app.services.common_service import getIdFromCode
 from sqlalchemy.exc import SQLAlchemyError
-
 
 
 from app.services.timesheet_service import createTimesheetsForAllUsers
@@ -68,7 +66,6 @@ def getUserAssignedRole(userCode):
             .first()
         )
 
-
         if not role_name:
             return None, None, "Role not found or user not found"
 
@@ -122,13 +119,12 @@ def createUser(org_code, user_data):
             return None, error1 or error2
 
         if User.query.filter_by(email=user_data["email"]).first():
-            print("exist")
             return None, "Email already exists"
 
         # if User.query.filter_by(username=user_data["username"]).first():
         #     return {"status": "error", "message": "Username already exists"}, 400
 
-        password=generatepwd()
+        password = generatepwd()
 
         new_user = User(
             # username=user_data["username"],
@@ -141,10 +137,8 @@ def createUser(org_code, user_data):
         db.session.add(new_user)
         db.session.flush()
 
-
         if not new_user.id:
             return None, "User creation failed"
-
 
         email_data = {
             "user_code": new_user.code,
@@ -154,9 +148,9 @@ def createUser(org_code, user_data):
             "TEMP_PASSWORD": password,
         }
 
-
-
-        emailSent = sendEmailFromTemplate("app/templates/welcome.html",EMAIL_SUBJECTS["WELCOME"], email_data)
+        emailSent = sendEmailFromTemplate(
+            "app/templates/welcome.html", EMAIL_SUBJECTS["WELCOME"], email_data
+        )
 
         if not emailSent:
             return None, "Failed to send Welcome Email to user"
@@ -165,7 +159,6 @@ def createUser(org_code, user_data):
 
         if timesheetError:
             return None, timesheetError
-
 
         newUserData = {
             "user_code": new_user.code,
@@ -178,7 +171,7 @@ def createUser(org_code, user_data):
         db.session.commit()
         return newUserData, None
 
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         db.session.rollback()
         return None, "Database error occurred"
 
@@ -188,8 +181,6 @@ def createUser(org_code, user_data):
     except Exception as e:
         db.session.rollback()
         return None, str(e)
-
-
 
 
 def resetUserPassword(userData):
@@ -248,7 +239,7 @@ def getUsers(variant, search="", page=1, per_page=10):
             )
             .outerjoin(Organization, User.org_id == Organization.id)
             .outerjoin(UserRole, User.role_id == UserRole.id)
-            # .order_by(User.created_at.desc())
+            .order_by(User.full_name.asc())
         )
 
         if search:
@@ -303,9 +294,11 @@ def getUsers(variant, search="", page=1, per_page=10):
 
         if variant == "manager":
 
-            query = query.filter(UserRole.id == DB_ROLE_ID['MANAGER'])
+            query = query.filter(
+                UserRole.id.in_([DB_ROLE_ID["MANAGER"], DB_ROLE_ID["SUPER_ADMIN"]])
+            )
 
-            users = query.all()
+            users = query.order_by(User.full_name.asc()).all()
             userList = []
 
             for user in users:
@@ -337,14 +330,14 @@ def getUserDetails(userCode):
             return None, "User does not exist"
 
         userData = {
-            "name":user.full_name,
-            "role":user.role.name,
-            "role_code":user.role.code,
-            "email":user.email,
-            "org_name":user.organization.name,
-            "is_active":user.is_active,
+            "name": user.full_name,
+            "role": user.role.name,
+            "role_code": user.role.code,
+            "email": user.email,
+            "org_name": user.organization.name,
+            "is_active": user.is_active,
             "created_at": formatDatetime(user.created_at),
-            "updated_at": formatDatetime(user.updated_at)
+            "updated_at": formatDatetime(user.updated_at),
         }
 
         return userData, None
@@ -456,7 +449,7 @@ def getUserDetails(userCode):
 #     return result
 
 
-def getUserProjects(userCode):
+def getUserProjects(userCode, userRole):
     """
     Retrieve all active projects assigned to a user.
     Uses UserProject mapping table.
@@ -468,81 +461,33 @@ def getUserProjects(userCode):
         if error:
             return None, "Invalid User"
 
-        projects = (
-            Project.query.join(UserProject, UserProject.project_id == Project.id)
-            .filter(
-                UserProject.user_id == userId, Project.active, UserProject.is_active
-            )
-            .all()
-        )
+        if userRole in [ROLES["HR"], ROLES["SUPER_ADMIN"]]:
+            projects = Project.query.filter(Project.active).order_by(Project.name.asc()).all()
 
-        projectList = []
+        else:
 
-        for project in projects:
-            projectList.append(
-                {
-                    "code": project.code,
-                    "name": project.name,
-                    "description": project.description,
-                }
+            projects = (
+                Project.query.join(UserProject, UserProject.project_id == Project.id)
+                .filter(
+                    UserProject.user_id == userId, Project.active, UserProject.is_active
+                )
+                .order_by(Project.name.asc())
+                .all()
             )
+
+        projectList = [
+            {
+                "code": project.code,
+                "name": project.name,
+                "description": project.description,
+            }
+            for project in projects
+        ]
 
         return projectList, None
 
     except Exception as e:
         return None, str(e)
-
-
-# def manageUserProject(authorUserId, projectData):
-#     """
-#     Assign a project to a user.
-#     Prevents duplicate assignments.
-#     Logs who created/updated the assignment.
-#     """
-
-#     try:
-
-#         userId, error2 = getIdFromCode(User, projectData["user_code"])
-#         projectId, error3 = getIdFromCode(Project, projectData["project_code"])
-
-#         if error2 or error3:
-#             return None, error2 or error3
-
-#         if projectData["action"]=="assign":
-
-#             if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
-#                 return None, "User exist in the project."
-
-#             userProject = UserProject(
-#                 user_id=userId,
-#                 project_id=projectId,
-#                 created_by=authorUserId,
-#                 updated_by=authorUserId,
-#             )
-#             db.session.add(userProject)
-#             db.session.commit()
-
-#             if not userProject.id:
-#                 return None, "Project creation failed"
-
-#             return True, None
-
-#         if projectData["action"]=="status_change":
-#             userProject = UserProject.query.filter_by(user_id=userId, project_id=projectId).first()
-
-#             if not userProject:
-#                 return None, "Project not exist"
-
-#             userProject.is_active=projectData["is_active"]
-#             userProject.updated_by=authorUserId
-
-#             db.session.commit()
-
-#             return "Project updated successfully", None
-
-#     except Exception as e:
-#         db.session.rollback()
-#         return None, str(e)
 
 
 def manageUserProject(authorUserId, projectData):
@@ -568,7 +513,9 @@ def manageUserProject(authorUserId, projectData):
 
             if projectData["action"] == "assign":
                 # Prevent duplicate assignment
-                if UserProject.query.filter_by(user_id=userId, project_id=projectId).first():
+                if UserProject.query.filter_by(
+                    user_id=userId, project_id=projectId
+                ).first():
                     errors.append({user_code: "User already exists in the project."})
                     continue
 
@@ -588,7 +535,9 @@ def manageUserProject(authorUserId, projectData):
                 results.append({user_code: "Assigned successfully"})
 
             elif projectData["action"] == "status_change":
-                userProject = UserProject.query.filter_by(user_id=userId, project_id=projectId).first()
+                userProject = UserProject.query.filter_by(
+                    user_id=userId, project_id=projectId
+                ).first()
                 if not userProject:
                     errors.append({user_code: "Project not exists"})
                     continue
@@ -611,8 +560,7 @@ def manageUserProject(authorUserId, projectData):
         return None, str(e)
 
 
-
-def lookup():
+def lookup(userCode, userRole):
     """
     Retrieve all lookup values needed.
     """
@@ -620,19 +568,28 @@ def lookup():
     try:
 
         timesheetStatus = TimesheetStatus.query.all()
+        userProjects, error = getUserProjects(userCode, userRole)
 
-        timesheetStatusList = []
+        if error:
+            return None, error
 
+        projectsList = [
+            {
+                "value": project["code"],
+                "label": project["name"],
+            }
+            for project in userProjects
+        ]
 
-        for ts in timesheetStatus:
-            timesheetStatusList.append(
-                {
-                    "value": ts.code,
-                    "label": ts.name,
-                }
-            )
+        timesheetStatusList = [
+            {
+                "value": ts.code,
+                "label": ts.name,
+            }
+            for ts in timesheetStatus
+        ]
 
-        return {"timesheet_status": timesheetStatusList}, None
+        return {"timesheet_status": timesheetStatusList, "projects": projectsList}, None
 
     except Exception as e:
         return None, str(e)

@@ -178,7 +178,7 @@ class GetUserProjects(MethodView):
 
         try:
             user_code = userData.get("user_code", self.userCode)
-            projects, error = getUserProjects(user_code)
+            projects, error = getUserProjects(user_code, self.userRole)
 
             if error:
                 return getErrorMessage(error), 400
@@ -225,7 +225,7 @@ class Lookup(MethodView):
     def get(self):
 
         try:
-            lookupData, error = lookup()
+            lookupData, error = lookup(self.userCode, self.userRole)
 
             if error:
                 return getErrorMessage(error), 400

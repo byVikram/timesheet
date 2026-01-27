@@ -211,7 +211,8 @@ def getAllTimesheets(
 
         # if timesheetData.get("timesheet_status"):
         query = query.filter(
-            TimesheetStatus.code.in_(timesheetData["timesheet_status"])
+            TimesheetStatus.code.in_(timesheetData["timesheet_status"]),
+            Project.code.in_(timesheetData["projects"]),
         )
 
         if timesheetData.get("search") and timesheetData["search"] != "":
@@ -571,6 +572,7 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole, action):
                         if history.changed_by_user
                         else None
                     ),
+                    "comment": history.comment,
                     "date": formatDatetime(history.created_at, "%d/%m/%Y %I:%M %p"),
                 }
             )
@@ -614,17 +616,17 @@ def getTimesheetByCode(userId, orgId, timesheet_code, userRole, action):
                             userRole == ROLES["MANAGER"]
                             and entry.project.manager_id == userId
                         )
-                        or userRole == ROLES["HR"]
+                        or userRole in [ROLES["SUPER_ADMIN"], ROLES["HR"]]
                     )
                 ),
                 "can_reject": (
                     entry.status == TIMESHEET_STATUS["PENDING_APPROVAL"]
-                    and(
+                    and (
                         (
                             userRole == ROLES["MANAGER"]
                             and entry.project.manager_id == userId
                         )
-                        or userRole == ROLES["HR"]
+                        or userRole in [ROLES["SUPER_ADMIN"], ROLES["HR"]]
                     )
                 ),
             }
@@ -674,12 +676,12 @@ def copyTimesheetEntry(userId, orgId, timesheet_code):
 
         if prevTimesheet is None:
             return None, "No previous timesheet to copy from"
-        
+
         existing_entry = TimesheetEntry.query.filter_by(
-                timesheet_id=timesheet.id,
-                # project_id=prev_entry.project_id,
-                # task_id=prev_entry.task_id,
-            ).all()
+            timesheet_id=timesheet.id,
+            # project_id=prev_entry.project_id,
+            # task_id=prev_entry.task_id,
+        ).all()
 
         if existing_entry:
             # continue  # Skip if entry already exists
@@ -911,10 +913,10 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
     """
     Update hours and notes for multiple timesheet entries for a user.
     Expects timesheetsData to be a list of objects containing:
-                    - project_code
-                    - task_code
-                    - time_records: list of {"date": "YYYY-MM-DD", "hours": float, "note": str}
-                    - comment (optional, applies to the Timesheet)
+        - project_code
+        - task_code
+        - time_records: list of {"date": "YYYY-MM-DD", "hours": float, "note": str}
+        - comment (optional, applies to the Timesheet)
     """
     try:
 
@@ -991,7 +993,6 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
             db.session.commit()
 
             if timesheetsData["action"] == "submit":
-                print("submitting timesheet")
                 TimesheetEntry.query.filter_by(id=entry.id).update(
                     {"status": TIMESHEET_STATUS["PENDING_APPROVAL"]}
                 )
@@ -1020,7 +1021,7 @@ def updateTimesheets(userId, timesheetsData, userRole="Employee"):
             responses.append(response)
 
         return responses, None
-    
+
     except Exception as e:
         return None, str(e)
 
@@ -1156,6 +1157,98 @@ def reviewTimesheet(userId, userRole, timesheetData):
         db.session.commit()
 
         return f"Timesheet {action}d successfully", None
+
+    except Exception as e:
+        db.session.rollback()
+        return None, str(e)
+
+
+def bulkReviewTimesheet(userId, userRole, timesheetData):
+    try:
+        print(timesheetData,"timesheetData in service")
+        # Extract action (approve / reject)
+        action = timesheetData["action"]
+
+        is_admin = userRole in (ROLES["HR"], ROLES["SUPER_ADMIN"])
+
+        if action not in ["approve", "reject"]:
+            return None, "Invalid action."
+
+        # Find timesheet
+
+        for timesheetCode in timesheetData["timesheet_codes"]:
+
+            # if "timesheet_code" in timesheetData:
+            timesheet = Timesheet.query.filter_by(
+                code=timesheetCode
+            ).first()
+
+            projectId = Project.query.filter_by(
+                code=timesheetData["project_code"]
+            ).first().id
+
+            if not timesheet:
+                return None, f"Invalid timesheet code: {timesheetCode}"
+
+            # timesheetEntries = timesheet.entries
+
+            
+            timesheetEntries = TimesheetEntry.query.filter(
+                TimesheetEntry.timesheet_id == timesheet.id,
+                TimesheetEntry.project_id == projectId
+            ).all()
+
+            notApprovedCount = sum(1 for entry in timesheetEntries if entry.status != 3)
+            canApproveTimesheet = (
+                notApprovedCount == 1
+            )
+
+            for timesheetEntry in timesheetEntries:
+                is_manager = timesheetEntry.project.manager_id == userId
+
+                # Authorization check
+                print(timesheetEntry.project.manager_id,userId,userRole,"checking auth")
+                if not (is_manager or is_admin):
+                    return None, "Not authorized to review this timesheet"
+
+                # Status must be pending
+                if timesheetEntry.status != TIMESHEET_STATUS["PENDING_APPROVAL"]:
+                    return None, "Timesheet entry is not pending approval"
+
+                if action == "approve":
+                    print("approving", timesheetEntry.code)
+                    timesheetEntry.status = TIMESHEET_STATUS["APPROVED"]
+                    timesheet.status = (
+                        TIMESHEET_STATUS["APPROVED"]
+                        if canApproveTimesheet
+                        else TIMESHEET_STATUS["PARTIAL_APPROVE"]
+                    )
+
+                else:
+                    timesheetEntry.status = TIMESHEET_STATUS["REJECTED"]
+                    timesheet.status = (
+                        TIMESHEET_STATUS["REJECTED"]
+                        if canApproveTimesheet
+                        else TIMESHEET_STATUS["PARTIAL_REJECT"]
+                    )
+
+                timesheetEntry.approver_id = userId
+
+                history = TimesheetHistory(
+                    timesheet_entry_id=timesheetEntry.id,
+                    old_status=timesheetEntry.status,
+                    new_status=timesheet.status,
+                    changed_by=userId,
+                    comment=timesheetData.get("comment"),
+                )
+                db.session.add(history)
+
+                db.session.flush()
+
+        db.session.commit()
+
+        return f"Timesheets {action}d successfully", None
+
 
     except Exception as e:
         db.session.rollback()

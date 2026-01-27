@@ -3,6 +3,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint
 from app.constants.lookups import ROLES
 from app.schemas.timesheet_schema import (
+	BulkReviewTimesheetSchema,
 	CreateTimesheetEntrySchema,
 	DeleteTimesheetEntrySchema,
 	GetTimesheetSchema,
@@ -13,6 +14,7 @@ from app.schemas.timesheet_schema import (
 	UpdateTimesheetsSchema,
 )
 from app.services.timesheet_service import (
+	bulkReviewTimesheet,
 	copyTimesheetEntry,
 	createHoliday,
 	createTimesheetEntry,
@@ -314,6 +316,28 @@ class ReviewTimesheet(MethodView):
 	def post(self, timesheetData):
 		try:
 			timesheet, error = reviewTimesheet(self.userId, self.userRole, timesheetData)
+
+			if error:
+				return getErrorMessage(error), 400
+
+			return getSuccessMessage(
+				timesheet,
+				"",
+			)
+
+		except Exception as e:
+			return getErrorMessage(str(e)), 500
+
+
+@blp.route("/bulk-review")
+class BulkReviewTimesheet(MethodView):
+	@blp.doc(description="Update timesheet status by reviewing it")
+	@blp.arguments(BulkReviewTimesheetSchema)
+	@tokenValidation
+	@authorize([ROLES["SUPER_ADMIN"], ROLES["HR"], ROLES["MANAGER"]])
+	def post(self, timesheetData):
+		try:
+			timesheet, error = bulkReviewTimesheet(self.userId, self.userRole, timesheetData)
 
 			if error:
 				return getErrorMessage(error), 400

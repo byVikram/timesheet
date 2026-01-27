@@ -23,7 +23,7 @@ class ProjectReport(MethodView):
 	def post(self, args):
 		try:
 
-			projects, error = getProjectReports(self.orgId, args.get("user_codes"), args.get("start_date"), args.get("end_date"))
+			projects, error = getProjectReports(self.orgId, args)
 
 			if error:
 				return getErrorMessage(error), 400

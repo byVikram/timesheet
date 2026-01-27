@@ -46,8 +46,6 @@ def getProjectDetails(projectCode):
 
         project = Project().query.filter_by(code=projectCode).first()
 
-
-
         if not project:
             return None, "Invalid project_code"
 
@@ -59,11 +57,6 @@ def getProjectDetails(projectCode):
                 ).join(UserProject, User.id == UserProject.user_id)\
                 .filter(UserProject.project_id == project.id)\
                 .all()
-
-        # tasks = db
-
-        print(project.tasks,"tasks")
-
 
         userList = []
         taskList = []

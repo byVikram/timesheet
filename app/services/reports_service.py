@@ -6,7 +6,7 @@ from app.models.timesheets import Timesheet, TimesheetEntry, TimesheetStatus
 from app.extensions import db
 
 
-def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
+def getProjectReports(orgId, requestObj):
     """
     Retrieve a comprehensive set of reports for a given organization.
 
@@ -14,14 +14,15 @@ def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
     :return: Dictionary with different report sections or error message
     """
     try:
+        print("getProjectReports")
         # ----- Project-level summary -----
 
         # Start date needs to be weeks first date i.e monday
-        if startDate:
-            startDate = startDate - timedelta(days=startDate.weekday())
+        if requestObj.get("start_date"):
+            startDate = requestObj["start_date"] - timedelta(days=requestObj["start_date"].weekday())
 
-        if endDate:
-            endDate = endDate + timedelta(days=6 - endDate.weekday())
+        if requestObj.get("end_date"):
+            endDate = requestObj["end_date"] + timedelta(days=6 - requestObj["end_date"].weekday())
 
         project_summary = (
             db.session.query(
@@ -37,7 +38,8 @@ def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
             .join(User, User.id == Timesheet.user_id)
             .filter(
                 Project.org_id == orgId,
-                User.code.in_(userCodes),
+                User.code.in_(requestObj['user_codes']),
+                # Project.code.in_(requestObj['projects']),
                 Timesheet.week_start >= startDate if startDate else True,
                 Timesheet.week_start <= endDate if endDate else True,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
@@ -54,6 +56,8 @@ def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
             for p in project_summary
         ]
 
+        print("\n\n", project_summary_list, "\n\n")
+
         # ----- Task-level summary -----
         task_summary = (
             db.session.query(
@@ -69,7 +73,8 @@ def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
             .join(User, User.id == Timesheet.user_id)
             .filter(
                 Project.org_id == orgId,
-                User.code.in_(userCodes),
+                User.code.in_(requestObj['user_codes']),
+                Project.code.in_(requestObj['projects']),
                 Timesheet.week_start >= startDate if startDate else True,
                 Timesheet.week_start <= endDate if endDate else True,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"]
@@ -116,7 +121,8 @@ def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
             .join(User, User.id == Timesheet.user_id)
             .filter(
                 Project.org_id == orgId,
-                User.code.in_(userCodes),
+                User.code.in_(requestObj['user_codes']),
+                Project.code.in_(requestObj['projects']),
                 Timesheet.week_start >= startDate if startDate else True,
                 Timesheet.week_start <= endDate if endDate else True,
                 # TimesheetStatus.id == TIMESHEET_STATUS["APPROVED"],
@@ -145,6 +151,7 @@ def getProjectReports(orgId, userCodes, startDate=None, endDate=None):
 
     except Exception as e:
         return None, str(e)
+
 
 def getTimesheetReports(weeks_ago):
     try:

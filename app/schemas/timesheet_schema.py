@@ -19,6 +19,7 @@ class SearchTimesheetSchema(Schema):
     search = fields.Str()
     user_code = fields.Str()
     timesheet_status =fields.List(fields.Str())
+    projects =fields.List(fields.Str())
     start_date = fields.Date()
     end_date = fields.Date()
 
@@ -75,3 +76,13 @@ class ReviewTimesheetSchema(Schema):
         validate=validate.OneOf(["submit", "cancel", "approve", "reject"]),
     )
     comment = fields.Str()
+
+
+class BulkReviewTimesheetSchema(Schema):
+    timesheet_codes = fields.List(fields.Str(), required=True)
+    action = fields.Str(
+        required=True,
+        validate=validate.OneOf(["approve", "reject"]),
+    )
+    comment = fields.Str()
+    project_code = fields.Str(required=True)
