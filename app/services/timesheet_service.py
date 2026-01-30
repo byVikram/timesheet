@@ -177,15 +177,15 @@ def getAllTimesheets(
                 TimesheetStatus.name,
                 User.full_name,
             )
-            .order_by(
-                Case(
-                    *[
-                        (TimesheetStatus.name == status, priority)
-                        for status, priority in status_priority.items()
-                    ],
-                    else_=99,
-                ),
-            )
+            # .order_by(
+            #     Case(
+            #         *[
+            #             (TimesheetStatus.name == status, priority)
+            #             for status, priority in status_priority.items()
+            #         ],
+            #         else_=99,
+            #     ),
+            # )
         )
 
         if timesheetData["start_date"]:
@@ -225,7 +225,7 @@ def getAllTimesheets(
             "user_name": User.full_name,
             "week_start": Timesheet.week_start,
             "week_end": Timesheet.week_end,
-            "status": Timesheet.status,
+            "timesheet_status": "",
             "total_hours": "total_hours",
         }
 
@@ -239,19 +239,32 @@ def getAllTimesheets(
             # if sort_by == "user_name":
             # 	column = func.lower(column)
 
-            # Apply ascending or descending
-            if sort_direction == "desc":
-                query = (
-                    query.order_by(column.desc())
-                    if sort_by != "total_hours"
-                    else query.order_by(desc(column))
+            if sort_by == "timesheet_status":
+                # Custom order using status_priority
+                case_order = Case(
+                    *( (TimesheetStatus.name == status, priority) for status, priority in status_priority.items() ),
+                    else_=99
                 )
+                if sort_direction == "desc":
+                    query = query.order_by(desc(case_order))
+                else:
+                    query = query.order_by(case_order)
+
             else:
-                query = (
-                    query.order_by(column.asc())
-                    if sort_by != "total_hours"
-                    else query.order_by(column)
-                )
+
+                # Apply ascending or descending
+                if sort_direction == "desc":
+                    query = (
+                        query.order_by(column.desc())
+                        if sort_by != "total_hours"
+                        else query.order_by(desc(column))
+                    )
+                else:
+                    query = (
+                        query.order_by(column.asc())
+                        if sort_by != "total_hours"
+                        else query.order_by(column)
+                    )
 
         if download:
             allTimesheets = query.all()
@@ -259,7 +272,7 @@ def getAllTimesheets(
 
             timesheetList = [
                 {
-                    "total_hours": item.total_hours,
+                    "total_hours": round(item.total_hours, 2),
                     "timesheet_code": item.code,
                     "user_name": item.user_name,
                     "week_start": formatDatetime(item.week_start, "%b %d, %Y"),
@@ -276,7 +289,7 @@ def getAllTimesheets(
 
         timesheetList = [
             {
-                "total_hours": item.total_hours,
+                "total_hours": round(item.total_hours, 2),
                 "timesheet_code": item.code,
                 "user_name": item.user_name,
                 "week_start": formatDatetime(item.week_start, "%b %d, %Y"),

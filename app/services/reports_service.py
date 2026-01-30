@@ -51,7 +51,7 @@ def getProjectReports(orgId, requestObj):
             {
                 "project_name": p.project_name,
                 "num_tasks": p.num_tasks,
-                "total_hours": float(p.total_hours),
+                "total_hours": round(p.total_hours, 2),
             }
             for p in project_summary
         ]
