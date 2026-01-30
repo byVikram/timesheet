@@ -22,10 +22,10 @@ def getHolidays(orgId, year):
     Fetch all holidays for the given organization.
 
     Args:
-                orgId (int): Organization ID.
+        orgId (int): Organization ID.
 
     Returns:
-                (list, error): A list of holidays or an error message.
+        (list, error): A list of holidays or an error message.
     """
 
     try:

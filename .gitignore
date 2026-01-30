@@ -5,3 +5,4 @@ instance/
 /.env
 .vscode/settings.json
 /logs
+/.vscode

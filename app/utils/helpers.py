@@ -20,7 +20,7 @@ from logging.handlers import RotatingFileHandler
 def generateToken(userCode, roleCode, orgCode):
 	secret_key = current_app.config['SECRET_KEY']
 	expiration_time = current_app.config['ACCESS_TOKEN_EXPIRE_TIME']
-	print("Expiration Time:", expiration_time)
+
 	payload = {
 			"user_code": userCode,
 			"role_code": roleCode,
@@ -494,59 +494,95 @@ def setupLogger(app):
 
 def setupLambdaLogger(app):
 	"""
-	Logger setup for Flask app running in AWS Lambda.
-	Logs every API request and exceptions to CloudWatch (stdout).
+	Production-grade logging for Flask running in AWS Lambda.
+
+	- Single structured log per request
+	- Safe handling of sensitive endpoints
+	- Accurate request duration
+	- No duplicate logs
+	- Exception-safe logging
 	"""
 
-	# Remove default handlers
-	if app.logger.handlers:
-		for handler in app.logger.handlers:
-			app.logger.removeHandler(handler)
+	# URLs that must NEVER log request bodies
+	SENSITIVE_PATHS = {
+		"/user/login",
+		"/user/reset-password",
+		"/refresh",
+	}
 
-	# Stream handler (stdout) — Lambda automatically sends this to CloudWatch
-	console_handler = logging.StreamHandler()
-	console_handler.setLevel(logging.INFO)
+	# ---------------------------------------------------------
+	# Reset Flask default handlers (Lambda reuse safety)
+	# ---------------------------------------------------------
+	app.logger.handlers.clear()
+
+	# ---------------------------------------------------------
+	# Stdout logger (CloudWatch picks this up automatically)
+	# ---------------------------------------------------------
+	handler = logging.StreamHandler()
+	handler.setLevel(logging.INFO)
+
 	formatter = logging.Formatter(
-		'[%(asctime)s] [%(levelname)s] %(name)s: %(message)s'
+		"[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"
 	)
-	console_handler.setFormatter(formatter)
+	handler.setFormatter(formatter)
 
-	app.logger.addHandler(console_handler)
+	app.logger.addHandler(handler)
 	app.logger.setLevel(logging.INFO)
-	app.logger.info("Lambda logger initialized successfully")
 
-	# -------------------------------
-	# Log every request
-	# -------------------------------
+	# Disable Werkzeug access logs (avoid duplicate request logs)
+	logging.getLogger("werkzeug").setLevel(logging.ERROR)
+
+	# ---------------------------------------------------------
+	# Start timer (NO logging here)
+	# ---------------------------------------------------------
 	@app.before_request
-	def log_request_info():
+	def start_timer():
 		g.start_time = datetime.utcnow()
-		app.logger.info(
-			f"Request start: {request.method} {request.path} | "
-			f"IP: {request.remote_addr} | "
-			f"Args: {request.args.to_dict()} | "
-			f"JSON: {request.get_json(silent=True)}"
-		)
 
+	# ---------------------------------------------------------
+	# Single request + response log
+	# ---------------------------------------------------------
 	@app.after_request
-	def log_response_info(response):
-		duration = (datetime.utcnow() - g.start_time).total_seconds()
-		log_msg = (
-			f"Request end: {request.method} {request.path} | "
-			f"Status: {response.status_code} | Duration: {duration:.3f}s"
-		)
+	def log_request(response):
+		start_time = getattr(g, "start_time", datetime.utcnow())
+		duration = (datetime.utcnow() - start_time).total_seconds()
 
-		# Include response body for errors
+		path = request.path or ""
+		body = None
+
+		# Log request body ONLY when safe and useful
+		if (
+			path not in SENSITIVE_PATHS
+			and request.method in ("POST", "PUT", "PATCH")
+			and request.content_type == "application/json"
+		):
+			body = request.get_json(silent=True)
+
+		log = {
+			"method": request.method,
+			"path": path,
+			"status": response.status_code,
+			"duration_ms": round(duration * 1000, 2),
+			"ip": request.remote_addr,
+			"query": request.args.to_dict(),
+			"request_body": body,
+		}
+
+		# Log response body only for errors and only if JSON
 		if response.status_code >= 400:
-			log_msg += f" | Response: {json.loads(response.get_data(as_text=True))}"
+			log["response"] = response.get_json(silent=True)
 
-		app.logger.info(log_msg)
+		app.logger.info(json.dumps(log))
 		return response
 
-	# -------------------------------
+	# ---------------------------------------------------------
 	# Global exception logging
-	# -------------------------------
+	# ---------------------------------------------------------
 	@app.errorhandler(Exception)
 	def handle_exception(e):
-		app.logger.exception(f"Unhandled Exception: {str(e)}")
-		return {"status": "error", "message": "Internal Server Error"}, 500
+		app.logger.exception("Unhandled exception")
+		return {
+			"status": "error",
+			"message": "Internal Server Error"
+		}, 500
+
