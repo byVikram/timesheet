@@ -1259,7 +1259,7 @@ def bulkReviewTimesheet(userId, userRole, timesheetData):
 
             db.session.flush()
 
-        # db.session.commit()
+        db.session.commit()
         return f"Timesheets {action}d successfully", None
 
     except Exception as e:
