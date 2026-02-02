@@ -1186,7 +1186,7 @@ def bulkReviewTimesheet(userId, userRole, timesheetData):
 
         is_admin = userRole in (ROLES["HR"], ROLES["SUPER_ADMIN"])
 
-        for timesheetCode in timesheetData.g("timesheet_codes", []):
+        for timesheetCode in timesheetData["timesheet_codes"]:
             timesheet = Timesheet.query.filter_by(code=timesheetCode).first()
             if not timesheet:
                 return None, f"Invalid timesheet code: {timesheetCode}"
@@ -1257,7 +1257,7 @@ def bulkReviewTimesheet(userId, userRole, timesheetData):
 
             db.session.flush()
 
-        db.session.commit()
+        # db.session.commit()
         return f"Timesheets {action}d successfully", None
 
     except Exception as e:
