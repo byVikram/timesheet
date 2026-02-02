@@ -1131,7 +1131,7 @@ def reviewTimesheet(userId, userRole, timesheetData):
             return None, "Timesheet not able to cancel"
 
         # Authorization check
-        if timesheetEntry.project.manager_id != userId and userRole != ROLES["HR"]:
+        if timesheetEntry.project.manager_id != userId and userRole not in [ROLES["HR"], ROLES["SUPER_ADMIN"]]:
             return None, "Not authorized to review this timesheet"
 
         # Status must be pending
