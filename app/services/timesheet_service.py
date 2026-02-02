@@ -189,15 +189,17 @@ def getAllTimesheets(
         )
 
         if timesheetData["start_date"]:
-            startDate = timesheetData["start_date"] - timedelta(
-                days=timesheetData["start_date"].weekday()
-            )
+            startDate = timesheetData["start_date"] 
+            # - timedelta(
+            #     days=timesheetData["start_date"].weekday()
+            # )
             query = query.filter(Timesheet.week_start >= startDate)
 
         if timesheetData["end_date"]:
-            endDate = timesheetData["end_date"] + timedelta(
-                days=6 - timesheetData["end_date"].weekday()
-            )
+            endDate = timesheetData["end_date"] 
+            # + timedelta(
+            #     days=6 - timesheetData["end_date"].weekday()
+            # )
             query = query.filter(Timesheet.week_end <= endDate)
 
         if role == ROLES["HR"]:
